@@ -1,10 +1,10 @@
 use crossbeam_channel::{select, Receiver, Sender};
 use std::collections::HashMap;
 use std::time::Instant;
-use wgl_2024::controller::Command;
-use wgl_2024::drone::{Drone, DroneOptions};
-use wgl_2024::network::{NodeId, SourceRoutingHeader};
-use wgl_2024::packet::{Nack, NackType, Packet, PacketType};
+use wg_2024::controller::Command;
+use wg_2024::drone::{Drone, DroneOptions};
+use wg_2024::network::{NodeId, SourceRoutingHeader};
+use wg_2024::packet::{Nack, NackType, Packet, PacketType};
 
 #[allow(dead_code)]
 struct MyDrone {
