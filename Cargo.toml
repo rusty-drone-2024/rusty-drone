@@ -6,5 +6,5 @@ edition = "2021"
 crossbeam-channel = "0.5.13"
 # For now we use the code from the not merged PR
 # wgl_2024 = { git = "https://github.com/DiCesareDaniele/WGL_repo_2024.git" }
-wg_2024 = { git = "https://github.com/WGL-2024/WGL_repo_2024.git" }
+wg_2024 = { git = "https://github.com/WGL-2024/WGL_repo_2024.git", branch = "main" }
 
