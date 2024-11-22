@@ -60,7 +60,7 @@ impl MyDrone {
 // Packet handling part
 impl MyDrone {
     fn handle_normal_packets(&self, packet: Packet) {
-        let routing = packet.routing_header;
+        let routing = packet.routing_header.clone();
         let session_id = packet.session_id;
 
         let res = self.forward(packet);
@@ -105,21 +105,31 @@ impl MyDrone {
     fn get_hop_id(&self, routing: &SourceRoutingHeader, diff: i64) -> Result<NodeId, NackType> {
         // Nack type should be changed to the appropriate one
         // But it is still not in the PR
-        let pos = routing
+        let pos = routing.hops
             .iter()
             .position(|x| x.eq(&self.id))
-            .ok_or(NackType::Dropped())?;
+            .ok_or(NackType::Dropped)?;
 
         // Error should be DestinationIsServer
-        let node_id = routing
+        let node_id = routing.hops
             .get((pos as i64 + diff) as usize) // this is bad
-            .ok_or(NackType::Dropped())?;
+            .ok_or(NackType::Dropped)?;
 
         Ok(*node_id)
     }
 
-    fn invert_routing(&self, _routing: &SourceRoutingHeader) -> SourceRoutingHeader {
-        todo!()
+    fn invert_routing(&self, routing: &SourceRoutingHeader) -> SourceRoutingHeader {
+        let mut new_routing = SourceRoutingHeader{
+            hop_index: 0,
+            hops: Vec::new(),
+        };
+        for node in routing.hops.iter().rev() {
+            new_routing.hops.push(*node);
+            if self.id == *node {
+                break;
+            }
+        }
+        new_routing
     }
 }
 
