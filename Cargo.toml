@@ -1,5 +1,5 @@
 [package]
-name = "rusty-drones"
+name = "rusty_drones"
 edition = "2021"
 
 [dependencies]

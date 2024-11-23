@@ -7,7 +7,7 @@ use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{Nack, NackType, Packet, PacketType};
 
 #[allow(dead_code)]
-struct MyDrone {
+pub struct MyDrone {
     id: NodeId,
     sim_contr_send: Sender<Command>, // TODO missing command response
     sim_contr_recv: Receiver<Command>,
