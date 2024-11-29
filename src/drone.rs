@@ -12,12 +12,12 @@ use wg_2024::packet::{Nack, NackType, Packet, PacketType};
 
 #[allow(dead_code)]
 pub struct MyDrone {
-    pub id: NodeId,
-    pub controller_send: Sender<NodeEvent>,
-    pub controller_recv: Receiver<DroneCommand>,
-    pub packet_recv: Receiver<Packet>,
-    pub packet_send: HashMap<NodeId, Sender<Packet>>,
-    pub pdr: f32,
+    id: NodeId,
+    controller_send: Sender<NodeEvent>,
+    controller_recv: Receiver<DroneCommand>,
+    packet_recv: Receiver<Packet>,
+    packet_send: HashMap<NodeId, Sender<Packet>>,
+    pdr: f32,
 }
 
 impl Drone for MyDrone {
