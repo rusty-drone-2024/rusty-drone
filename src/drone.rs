@@ -76,6 +76,7 @@ impl MyDrone {
         let routing = packet.routing_header.clone();
         let session_id = packet.session_id;
 
+        //Forward the packet
         let res = self.forward(packet);
 
         if let Err(nack_type) = res {
@@ -115,15 +116,14 @@ impl MyDrone {
     }
 
     fn get_hop_id(&self, routing: &SourceRoutingHeader, diff: i64) -> Result<NodeId, NackType> {
-        //Cahnge error typoes in this function
         let pos = routing.hops
             .iter()
             .position(|x| x.eq(&self.id))
-            .ok_or(NackType::Dropped)?;
+            .ok_or(NackType::UnexpectedRecipient((routing.hops[routing.hop_index-1])))?;
 
         let node_id = routing.hops
             .get((pos as i64 + diff) as usize) // this is bad
-            .ok_or(NackType::Dropped)?;
+            .ok_or(NackType::DestinationIsDrone)?;
 
         Ok(*node_id)
     }
