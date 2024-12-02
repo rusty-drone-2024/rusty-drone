@@ -1,9 +1,9 @@
 #![allow(unused)]
 
 use crossbeam_channel::{select_biased, unbounded, Receiver, Sender};
+use rand::Rng;
 use std::collections::HashMap;
 use std::time::Instant;
-use rand::Rng;
 use wg_2024::config::Config;
 use wg_2024::controller::{DroneCommand, NodeEvent};
 use wg_2024::drone::{Drone, DroneOptions};
@@ -52,7 +52,6 @@ impl Drone for MyDrone {
             }
         }
     }
-
 }
 
 // Command handling part
@@ -61,10 +60,8 @@ impl MyDrone {
         match command {
             DroneCommand::AddSender(node_id, sender) => {
                 self.packet_send.insert(node_id, sender);
-            },
-            DroneCommand::SetPacketDropRate(pdr) => {
-                self.pdr = pdr
-            },
+            }
+            DroneCommand::SetPacketDropRate(pdr) => self.pdr = pdr,
             DroneCommand::Crash => todo!(),
         }
     }
@@ -86,7 +83,7 @@ impl MyDrone {
                 if let Some(channel) = self.packet_send.get(&node_id) {
                     MyDrone::send(
                         Packet {
-                            pack_type: PacketType::Nack(Nack{
+                            pack_type: PacketType::Nack(Nack {
                                 fragment_index: 0,
                                 nack_type,
                             }),
@@ -116,12 +113,12 @@ impl MyDrone {
     }
 
     fn get_hop_id(&self, routing: &SourceRoutingHeader, diff: i64) -> Result<NodeId, NackType> {
-        let pos = routing.hops
-            .iter()
-            .position(|x| x.eq(&self.id))
-            .ok_or(NackType::UnexpectedRecipient((routing.hops[routing.hop_index-1])))?;
+        let pos = routing.hops.iter().position(|x| x.eq(&self.id)).ok_or(
+            NackType::UnexpectedRecipient(routing.hops[routing.hop_index - 1]),
+        )?;
 
-        let node_id = routing.hops
+        let node_id = routing
+            .hops
             .get((pos as i64 + diff) as usize) // this is bad
             .ok_or(NackType::DestinationIsDrone)?;
 
@@ -129,7 +126,7 @@ impl MyDrone {
     }
 
     fn invert_routing(&self, routing: &SourceRoutingHeader) -> SourceRoutingHeader {
-        let mut new_routing = SourceRoutingHeader{
+        let mut new_routing = SourceRoutingHeader {
             hop_index: 0,
             hops: Vec::new(),
         };
@@ -154,6 +151,5 @@ impl MyDrone {
         if channel.send(to_send).is_err() {
             // Boh. Do some logging?
         }
-
     }
 }
