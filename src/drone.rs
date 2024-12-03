@@ -5,15 +5,15 @@ use rand::Rng;
 use std::collections::HashMap;
 use std::time::Instant;
 use wg_2024::config::Config;
-use wg_2024::controller::{DroneCommand, NodeEvent};
-use wg_2024::drone::{Drone, DroneOptions};
+use wg_2024::controller::{DroneCommand, DroneEvent};
+use wg_2024::drone::Drone;
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{Nack, NackType, Packet, PacketType};
 
 #[allow(dead_code)]
 pub struct MyDrone {
     id: NodeId,
-    controller_send: Sender<NodeEvent>,
+    controller_send: Sender<DroneEvent>,
     controller_recv: Receiver<DroneCommand>,
     packet_recv: Receiver<Packet>,
     packet_send: HashMap<NodeId, Sender<Packet>>,
@@ -21,13 +21,20 @@ pub struct MyDrone {
 }
 
 impl Drone for MyDrone {
-    fn new(options: DroneOptions) -> Self {
+    fn new(
+        id: NodeId,
+        controller_send: Sender<DroneEvent>,
+        controller_recv: Receiver<DroneCommand>,
+        packet_recv: Receiver<Packet>,
+        packet_send: HashMap<NodeId, Sender<Packet>>,
+        pdr: f32,
+    ) -> Self {
         Self {
-            id: options.id,
-            controller_send: options.controller_send,
-            controller_recv: options.controller_recv,
-            packet_recv: options.packet_recv,
-            pdr: options.pdr,
+            id: id,
+            controller_send: controller_send,
+            controller_recv: controller_recv,
+            packet_recv: packet_recv,
+            pdr: pdr,
             packet_send: HashMap::new(),
         }
     }
@@ -58,6 +65,9 @@ impl Drone for MyDrone {
 impl MyDrone {
     fn handle_command_packets(&mut self, command: DroneCommand) {
         match command {
+            DroneCommand::RemoveSender(node_id) => {
+                self.packet_send.remove(&node_id);
+            }
             DroneCommand::AddSender(node_id, sender) => {
                 self.packet_send.insert(node_id, sender);
             }
