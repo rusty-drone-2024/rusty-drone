@@ -151,7 +151,7 @@ impl MyDrone {
 
     fn should_drop(&self) -> bool {
         let mut rng = rand::thread_rng();
-        rng.gen::<f32>() < self.pdr
+        rng.gen_range(0.0..1.0) < self.pdr
     }
 }
 
