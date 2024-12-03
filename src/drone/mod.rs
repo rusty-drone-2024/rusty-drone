@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+mod tests;
 use crossbeam_channel::{select_biased, unbounded, Receiver, Sender};
 use rand::Rng;
 use std::collections::HashMap;
