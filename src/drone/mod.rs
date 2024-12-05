@@ -1,18 +1,20 @@
 #![allow(unused)]
 
 mod tests;
-use crossbeam_channel::{select_biased, unbounded, Receiver, Sender};
+use crossbeam_channel::{select_biased, unbounded, Receiver, RecvError, Sender};
 use rand::Rng;
 use std::collections::{HashMap, HashSet};
+use std::process::Command;
 use std::time::Instant;
 use wg_2024::config::Config;
 use wg_2024::controller::{DroneCommand, DroneEvent};
 use wg_2024::drone::Drone;
 use wg_2024::network::{NodeId, SourceRoutingHeader};
-use wg_2024::packet::NackType::{DestinationIsDrone, UnexpectedRecipient};
+use wg_2024::packet::NackType::{DestinationIsDrone, ErrorInRouting, UnexpectedRecipient};
 use wg_2024::packet::{
     Ack, FloodRequest, FloodResponse, Fragment, Nack, NackType, Packet, PacketType,
 };
+use wg_2024::packet::PacketType::FloodRequest;
 
 #[allow(dead_code)]
 pub struct MyDrone {
@@ -46,155 +48,117 @@ impl Drone for MyDrone {
     }
 
     fn run(&mut self) {
-        loop {
+        let mut crashing = false;
+        while !crashing {
             select_biased! {
-                recv(self.controller_recv) -> command => {
-                    if let Ok(command) = command {
-                        if let DroneCommand::Crash = command {
-                            println!("drone {} crashed", self.id);
-                            break;
-                        }
-                        self.handle_command_packets(command);
+                recv(self.controller_recv) -> res => {
+                    if let Some(command) = res{
+                        crashing = self.handle_commands(command)
                     }
-                }
-                recv(self.packet_recv) -> packet => {
-                    if let Ok(packet) = packet {
-                        self.handle_normal_packets(packet);
+                },
+                recv(self.packet_recv) -> res => {
+                    if let Some(packet) = res{
+                        self.handle_packet(packet)
                     }
                 },
             }
         }
+
+        // crashing
+        while let Ok(packet) = self.packet_recv.recv() {
+            self.handle_packets(packet);
+        }
     }
 }
 
-// Command handling part
+// Command/packets handling part
 impl MyDrone {
-    fn handle_command_packets(&mut self, command: DroneCommand) {
+
+    fn handle_commands(&mut self, command: DroneCommand) -> bool{
         match command {
-            DroneCommand::RemoveSender(node_id) => {
-                self.packet_send.remove(&node_id);
-            }
+            DroneCommand::Crash => return true,
+            DroneCommand::SetPacketDropRate(pdr) => self.pdr = pdr,
+            DroneCommand::RemoveSender(ref node_id) => {
+                self.packet_send.remove(node_id);
+            },
             DroneCommand::AddSender(node_id, sender) => {
                 self.packet_send.insert(node_id, sender);
-            }
-            DroneCommand::SetPacketDropRate(pdr) => self.pdr = pdr,
-            DroneCommand::Crash => todo!(),
+            },
         }
+
+        false
+    }
+
+    /// return the response to be sent
+    fn handle_packet(&mut self, mut packet: Packet){
+        // Do custom handling for floods
+        if let PacketType::FloodRequest(_) = packet.pack_type{
+            let response_packet = self.handle_flood_request();
+
+            // need to split between request and response
+        }
+
+        let res = self.handle_normal_types();
+        if let Some(response_packet) = res{
+            self.send_packet(response_packet);
+        }
+    }
+
+
+}
+
+impl MyDrone{
+    /// Return wheter it should crash or not
+    fn handle_normal_types(&self, mut packet: Packet) -> Option<Packet>{
+        let droppable = (if let PacketType::MsgFragment(_) = packet.pack_type {true} else {false});
+        let routing = &mut packet.routing_header;
+
+        if routing.current_hop() != Some(self.id) {
+            if !droppable{ // the protocol say so but it is just dumb
+                self.use_shortcut(packet);
+                return None;
+            }
+            return Some(create_nack(packet, UnexpectedRecipient(self.id)));
+        }
+
+        //TODO may be broken check all function in repo
+        if routing.is_last_hop() {
+            if !droppable{ // cannot nack only fragment, rest will be dropped
+                return None;
+            }
+            return Some(create_nack(packet, DestinationIsDrone));
+        }
+
+        // cannot be done before as asked by the protocol
+        routing.increase_hop_index();
+
+        // next hop must exist
+        let next_hop = routing.next_hop()?;
+        if !self.packet_send.contains_key(&next_hop) {
+            if !droppable{
+                self.use_shortcut(packet);
+                return None;
+            }
+
+            return Some(create_nack(packet, NackType::ErrorInRouting(next_hop)));
+        }
+
+        if droppable && self.should_drop() {
+            return Some(create_nack(packet, NackType::Dropped));
+        }
+
+        // forward if all succeed
+        Some(packet)
+    }
+
+    /// return the response to be sent
+    fn handle_flood_request(&self, mut packet: Packet) -> Packet{ //TODO
+        todo!()
     }
 }
 
 // Packet handling part
 impl MyDrone {
-    fn handle_normal_packets(&mut self, mut packet: Packet) {
-        // destructure packet
-        let mut routing_header = packet.routing_header;
-        let session_id = packet.session_id;
-        let pack_type = packet.pack_type;
-
-        // protocol step 1:
-        if routing_header.valid_hop_index() && routing_header.current_hop().unwrap() == self.id {
-            // protocol step 2:
-            routing_header.increase_hop_index();
-
-            // protocol step 3:
-            if !routing_header.is_last_hop() {
-            } else {
-                match pack_type {
-                    PacketType::MsgFragment(fragment) => self.handle_nack(
-                        routing_header,
-                        session_id,
-                        fragment.fragment_index,
-                        DestinationIsDrone,
-                    ),
-                    _ => self.handle_nack(routing_header, session_id, 0, DestinationIsDrone),
-                }
-            }
-        } else {
-            match pack_type {
-                PacketType::MsgFragment(fragment) => self.handle_nack(
-                    routing_header,
-                    session_id,
-                    fragment.fragment_index,
-                    UnexpectedRecipient(self.id),
-                ),
-                _ => self.handle_nack(routing_header, session_id, 0, UnexpectedRecipient(self.id)),
-            }
-        }
-    }
-
-    fn handle_fragment(
-        &mut self,
-        routing_header: SourceRoutingHeader,
-        session_id: u64,
-        fragment: Fragment,
-    ) {
-    }
-    fn handle_ack(
-        &mut self,
-        routing_header: SourceRoutingHeader,
-        session_id: u64,
-        fragment_index: u64,
-    ) {
-        // reverse srh
-        // create ack according to protocol
-        // create packet
-        // send packet
-    }
-    fn handle_nack(
-        &mut self,
-        routing_header: SourceRoutingHeader,
-        session_id: u64,
-        fragment_index: u64,
-        nack_type: NackType,
-    ) {
-        // reverse srh
-        // create nack
-        // create packet
-        // send packet
-    }
-    fn handle_flood_request(
-        &mut self,
-        routing_header: SourceRoutingHeader,
-        session_id: u64,
-        flood_request: FloodRequest,
-    ) {
-    }
-    fn handle_flood_response(
-        &mut self,
-        routing_header: SourceRoutingHeader,
-        session_id: u64,
-        flood_response: FloodResponse,
-    ) {
-    }
-
-    fn forward(&self, packet: Packet) -> Result<(), NackType> {
-        if self.should_drop() {
-            return Err(NackType::Dropped);
-        }
-        let next_node_id = self.get_hop_id(&packet.routing_header, 1)?;
-
-        let channel = self
-            .packet_send
-            .get(&next_node_id)
-            .ok_or(NackType::ErrorInRouting(next_node_id))?;
-
-        MyDrone::send(packet, channel);
-        Ok(())
-    }
-
-    fn get_hop_id(&self, routing: &SourceRoutingHeader, diff: i64) -> Result<NodeId, NackType> {
-        let pos = routing.hops.iter().position(|x| x.eq(&self.id)).ok_or(
-            NackType::UnexpectedRecipient(routing.hops[routing.hop_index - 1]),
-        )?;
-
-        let node_id = routing
-            .hops
-            .get((pos as i64 + diff) as usize) // this is bad
-            .ok_or(NackType::DestinationIsDrone)?;
-
-        Ok(*node_id)
-    }
-
     fn should_drop(&self) -> bool {
         let mut rng = rand::thread_rng();
         rng.gen_range(0.0..1.0) < self.pdr
@@ -204,8 +168,20 @@ impl MyDrone {
 // Common part
 impl MyDrone {
     fn send<T>(to_send: T, channel: &Sender<T>) {
-        if channel.send(to_send).is_err() {
-            // Boh. Do some logging?
-        }
+        channel.send(to_send);
     }
+
+    fn use_shortcut(&self, packet: Packet) {
+        self.controller_send.send(DroneEvent::ControllerShortcut(packet));
+    }
+
+    fn send_packet(&self, packet: Packet) {
+        //TODO
+    }
+}
+
+fn create_nack(p0: Packet, p1: NackType) -> Packet {
+    // TODO invert srh and set index to 0 (or 1 cannot remeber)
+    // TODO create a new packet of type nack
+    todo!()
 }
