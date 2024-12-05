@@ -3,13 +3,16 @@
 mod tests;
 use crossbeam_channel::{select_biased, unbounded, Receiver, Sender};
 use rand::Rng;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 use wg_2024::config::Config;
 use wg_2024::controller::{DroneCommand, DroneEvent};
 use wg_2024::drone::Drone;
 use wg_2024::network::{NodeId, SourceRoutingHeader};
-use wg_2024::packet::{Nack, NackType, Packet, PacketType};
+use wg_2024::packet::NackType::{DestinationIsDrone, UnexpectedRecipient};
+use wg_2024::packet::{
+    Ack, FloodRequest, FloodResponse, Fragment, Nack, NackType, Packet, PacketType,
+};
 
 #[allow(dead_code)]
 pub struct MyDrone {
@@ -19,6 +22,7 @@ pub struct MyDrone {
     packet_recv: Receiver<Packet>,
     packet_send: HashMap<NodeId, Sender<Packet>>,
     pdr: f32,
+    received_floods: HashSet<(u64, NodeId)>,
 }
 
 impl Drone for MyDrone {
@@ -31,12 +35,13 @@ impl Drone for MyDrone {
         pdr: f32,
     ) -> Self {
         Self {
-            id: id,
-            controller_send: controller_send,
-            controller_recv: controller_recv,
-            packet_recv: packet_recv,
-            pdr: pdr,
-            packet_send: HashMap::new(),
+            id,
+            controller_send,
+            controller_recv,
+            packet_recv,
+            pdr,
+            packet_send,
+            received_floods: HashSet::new(),
         }
     }
 
@@ -80,32 +85,86 @@ impl MyDrone {
 
 // Packet handling part
 impl MyDrone {
-    fn handle_normal_packets(&mut self, packet: Packet) {
-        let routing = packet.routing_header.clone();
+    fn handle_normal_packets(&mut self, mut packet: Packet) {
+        // destructure packet
+        let mut routing_header = packet.routing_header;
         let session_id = packet.session_id;
+        let pack_type = packet.pack_type;
 
-        //Forward the packet
-        let res = self.forward(packet);
+        // protocol step 1:
+        if routing_header.valid_hop_index() && routing_header.current_hop().unwrap() == self.id {
+            // protocol step 2:
+            routing_header.increase_hop_index();
 
-        if let Err(nack_type) = res {
-            let node_id = self.get_hop_id(&routing, -1);
-
-            if let Ok(node_id) = node_id {
-                if let Some(channel) = self.packet_send.get(&node_id) {
-                    MyDrone::send(
-                        Packet {
-                            pack_type: PacketType::Nack(Nack {
-                                fragment_index: 0,
-                                nack_type,
-                            }),
-                            routing_header: self.invert_routing(&routing),
-                            session_id,
-                        },
-                        channel,
-                    );
+            // protocol step 3:
+            if !routing_header.is_last_hop() {
+            } else {
+                match pack_type {
+                    PacketType::MsgFragment(fragment) => self.handle_nack(
+                        routing_header,
+                        session_id,
+                        fragment.fragment_index,
+                        DestinationIsDrone,
+                    ),
+                    _ => self.handle_nack(routing_header, session_id, 0, DestinationIsDrone),
                 }
             }
+        } else {
+            match pack_type {
+                PacketType::MsgFragment(fragment) => self.handle_nack(
+                    routing_header,
+                    session_id,
+                    fragment.fragment_index,
+                    UnexpectedRecipient(self.id),
+                ),
+                _ => self.handle_nack(routing_header, session_id, 0, UnexpectedRecipient(self.id)),
+            }
         }
+    }
+
+    fn handle_fragment(
+        &mut self,
+        routing_header: SourceRoutingHeader,
+        session_id: u64,
+        fragment: Fragment,
+    ) {
+    }
+    fn handle_ack(
+        &mut self,
+        routing_header: SourceRoutingHeader,
+        session_id: u64,
+        fragment_index: u64,
+    ) {
+        // reverse srh
+        // create ack according to protocol
+        // create packet
+        // send packet
+    }
+    fn handle_nack(
+        &mut self,
+        routing_header: SourceRoutingHeader,
+        session_id: u64,
+        fragment_index: u64,
+        nack_type: NackType,
+    ) {
+        // reverse srh
+        // create nack
+        // create packet
+        // send packet
+    }
+    fn handle_flood_request(
+        &mut self,
+        routing_header: SourceRoutingHeader,
+        session_id: u64,
+        flood_request: FloodRequest,
+    ) {
+    }
+    fn handle_flood_response(
+        &mut self,
+        routing_header: SourceRoutingHeader,
+        session_id: u64,
+        flood_response: FloodResponse,
+    ) {
     }
 
     fn forward(&self, packet: Packet) -> Result<(), NackType> {
@@ -134,20 +193,6 @@ impl MyDrone {
             .ok_or(NackType::DestinationIsDrone)?;
 
         Ok(*node_id)
-    }
-
-    fn invert_routing(&self, routing: &SourceRoutingHeader) -> SourceRoutingHeader {
-        let mut new_routing = SourceRoutingHeader {
-            hop_index: 0,
-            hops: Vec::new(),
-        };
-        for node in routing.hops.iter().rev() {
-            new_routing.hops.push(*node);
-            if self.id == *node {
-                break;
-            }
-        }
-        new_routing
     }
 
     fn should_drop(&self) -> bool {
