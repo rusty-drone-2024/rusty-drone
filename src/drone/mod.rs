@@ -11,10 +11,10 @@ use wg_2024::controller::{DroneCommand, DroneEvent};
 use wg_2024::drone::Drone;
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::NackType::{DestinationIsDrone, ErrorInRouting, UnexpectedRecipient};
+use wg_2024::packet::PacketType::FloodRequest;
 use wg_2024::packet::{
     Ack, FloodRequest, FloodResponse, Fragment, Nack, NackType, Packet, PacketType,
 };
-use wg_2024::packet::PacketType::FloodRequest;
 
 #[allow(dead_code)]
 pub struct MyDrone {
@@ -73,48 +73,50 @@ impl Drone for MyDrone {
 
 // Command/packets handling part
 impl MyDrone {
-
-    fn handle_commands(&mut self, command: DroneCommand) -> bool{
+    fn handle_commands(&mut self, command: DroneCommand) -> bool {
         match command {
             DroneCommand::Crash => return true,
             DroneCommand::SetPacketDropRate(pdr) => self.pdr = pdr,
             DroneCommand::RemoveSender(ref node_id) => {
                 self.packet_send.remove(node_id);
-            },
+            }
             DroneCommand::AddSender(node_id, sender) => {
                 self.packet_send.insert(node_id, sender);
-            },
+            }
         }
 
         false
     }
 
     /// return the response to be sent
-    fn handle_packet(&mut self, mut packet: Packet){
+    fn handle_packet(&mut self, mut packet: Packet) {
         // Do custom handling for floods
-        if let PacketType::FloodRequest(_) = packet.pack_type{
+        if let PacketType::FloodRequest(_) = packet.pack_type {
             let response_packet = self.handle_flood_request();
 
             // need to split between request and response
         }
 
         let res = self.handle_normal_types();
-        if let Some(response_packet) = res{
+        if let Some(response_packet) = res {
             self.send_packet(response_packet);
         }
     }
-
-
 }
 
-impl MyDrone{
+impl MyDrone {
     /// Return wheter it should crash or not
-    fn handle_normal_types(&self, mut packet: Packet) -> Option<Packet>{
-        let droppable = (if let PacketType::MsgFragment(_) = packet.pack_type {true} else {false});
+    fn handle_normal_types(&self, mut packet: Packet) -> Option<Packet> {
+        let droppable = (if let PacketType::MsgFragment(_) = packet.pack_type {
+            true
+        } else {
+            false
+        });
         let routing = &mut packet.routing_header;
 
         if routing.current_hop() != Some(self.id) {
-            if !droppable{ // the protocol say so but it is just dumb
+            if !droppable {
+                // the protocol say so but it is just dumb
                 self.use_shortcut(packet);
                 return None;
             }
@@ -123,7 +125,8 @@ impl MyDrone{
 
         //TODO may be broken check all function in repo
         if routing.is_last_hop() {
-            if !droppable{ // cannot nack only fragment, rest will be dropped
+            if !droppable {
+                // cannot nack only fragment, rest will be dropped
                 return None;
             }
             return Some(create_nack(packet, DestinationIsDrone));
@@ -135,7 +138,7 @@ impl MyDrone{
         // next hop must exist
         let next_hop = routing.next_hop()?;
         if !self.packet_send.contains_key(&next_hop) {
-            if !droppable{
+            if !droppable {
                 self.use_shortcut(packet);
                 return None;
             }
@@ -152,7 +155,8 @@ impl MyDrone{
     }
 
     /// return the response to be sent
-    fn handle_flood_request(&self, mut packet: Packet) -> Packet{ //TODO
+    fn handle_flood_request(&self, mut packet: Packet) -> Packet {
+        //TODO
         todo!()
     }
 }
@@ -172,7 +176,8 @@ impl MyDrone {
     }
 
     fn use_shortcut(&self, packet: Packet) {
-        self.controller_send.send(DroneEvent::ControllerShortcut(packet));
+        self.controller_send
+            .send(DroneEvent::ControllerShortcut(packet));
     }
 
     fn send_packet(&self, packet: Packet) {
