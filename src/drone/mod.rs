@@ -11,7 +11,6 @@ use wg_2024::controller::{DroneCommand, DroneEvent};
 use wg_2024::drone::Drone;
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::NackType::{DestinationIsDrone, ErrorInRouting, UnexpectedRecipient};
-use wg_2024::packet::PacketType::FloodRequest;
 use wg_2024::packet::{
     Ack, FloodRequest, FloodResponse, Fragment, Nack, NackType, Packet, PacketType,
 };
@@ -52,12 +51,12 @@ impl Drone for MyDrone {
         while !crashing {
             select_biased! {
                 recv(self.controller_recv) -> res => {
-                    if let Some(command) = res{
+                    if let Ok(command) = res{
                         crashing = self.handle_commands(command)
                     }
                 },
                 recv(self.packet_recv) -> res => {
-                    if let Some(packet) = res{
+                    if let Ok(packet) = res{
                         self.handle_packet(packet)
                     }
                 },
@@ -66,7 +65,7 @@ impl Drone for MyDrone {
 
         // crashing
         while let Ok(packet) = self.packet_recv.recv() {
-            self.handle_packets(packet);
+            self.handle_packet(packet);
         }
     }
 }
@@ -92,14 +91,14 @@ impl MyDrone {
     fn handle_packet(&mut self, mut packet: Packet) {
         // Do custom handling for floods
         if let PacketType::FloodRequest(_) = packet.pack_type {
-            let response_packet = self.handle_flood_request();
+            let response_packet = self.handle_flood_request(packet);
 
             // need to split between request and response
-        }
-
-        let res = self.handle_normal_types();
-        if let Some(response_packet) = res {
-            self.send_packet(response_packet);
+        } else {
+            let res = self.handle_normal_types(packet);
+            if let Some(response_packet) = res {
+                self.send_packet(response_packet);
+            }
         }
     }
 }
@@ -107,11 +106,7 @@ impl MyDrone {
 impl MyDrone {
     /// Return wheter it should crash or not
     fn handle_normal_types(&self, mut packet: Packet) -> Option<Packet> {
-        let droppable = (if let PacketType::MsgFragment(_) = packet.pack_type {
-            true
-        } else {
-            false
-        });
+        let droppable = matches!(packet.pack_type, PacketType::MsgFragment(_));
         let routing = &mut packet.routing_header;
 
         if routing.current_hop() != Some(self.id) {
