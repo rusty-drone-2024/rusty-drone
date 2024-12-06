@@ -1,5 +1,5 @@
-mod tests;
 mod utils;
+mod test;
 
 use crossbeam_channel::{select_biased, Receiver, Sender};
 use std::collections::{HashMap, HashSet};
@@ -94,7 +94,7 @@ impl MyDrone {
                 self.handle_flood_request(packet, already_rec);
             }
         } else {
-            let res = self.respond_normal_types(packet, true);
+            let res = self.respond_normal_types(packet, crashing);
             if let Some(response_packet) = res {
                 self.send_packet(response_packet);
             }
@@ -122,7 +122,7 @@ impl MyDrone {
     fn respond_normal_types(&self, mut packet: Packet, crashing: bool) -> Option<Packet> {
         let droppable = matches!(packet.pack_type, PacketType::MsgFragment(_));
         let routing = &mut packet.routing_header;
-
+        
         // If unexpected packets
         if routing.current_hop() != Some(self.id) {
             // the protocol say so but it is just dumb
@@ -141,6 +141,7 @@ impl MyDrone {
         }
 
         if droppable && utils::should_drop(self.pdr) {
+            let _ = self.controller_send.send(DroneEvent::PacketDropped(packet.clone()));
             return self.create_nack(packet, Dropped, droppable, false);
         }
 
@@ -257,7 +258,8 @@ impl MyDrone {
         let next = packet.routing_header.current_hop();
         if let Some(next_hop) = next {
             if let Some(channel) = self.packet_send.get(&next_hop) {
-                let _ = channel.send(packet);
+                let _ = channel.send(packet.clone());
+                let _ = self.controller_send.send(DroneEvent::PacketSent(packet));
             }
         }
         // Ignore broken send (it is an internal problem)
