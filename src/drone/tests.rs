@@ -25,4 +25,5 @@ fn test_drone_new() -> () {
         neighbors_send,
         pdr,
     );
+    assert_eq!(drone.id, id);
 }
