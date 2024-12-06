@@ -1,16 +1,18 @@
 #![allow(unused)]
 
 mod tests;
+
+use crate::drone::utils::get_fragment_index;
 use crossbeam_channel::{select_biased, unbounded, Receiver, RecvError, Sender};
-use rand::Rng;
 use std::collections::{HashMap, HashSet};
 use std::process::Command;
 use std::time::Instant;
 use wg_2024::config::Config;
+use wg_2024::controller::DroneEvent::PacketDropped;
 use wg_2024::controller::{DroneCommand, DroneEvent};
 use wg_2024::drone::Drone;
 use wg_2024::network::{NodeId, SourceRoutingHeader};
-use wg_2024::packet::NackType::{DestinationIsDrone, ErrorInRouting, UnexpectedRecipient};
+use wg_2024::packet::NackType::{DestinationIsDrone, Dropped, ErrorInRouting, UnexpectedRecipient};
 use wg_2024::packet::{
     Ack, FloodRequest, FloodResponse, Fragment, Nack, NackType, Packet, PacketType,
 };
@@ -57,7 +59,7 @@ impl Drone for MyDrone {
                 },
                 recv(self.packet_recv) -> res => {
                     if let Ok(packet) = res{
-                        self.handle_packet(packet)
+                        self.handle_packet(packet, false)
                     }
                 },
             }
@@ -65,7 +67,7 @@ impl Drone for MyDrone {
 
         // crashing
         while let Ok(packet) = self.packet_recv.recv() {
-            self.handle_packet(packet);
+            self.handle_packet(packet, true);
         }
     }
 }
@@ -88,14 +90,14 @@ impl MyDrone {
     }
 
     /// return the response to be sent
-    fn handle_packet(&mut self, mut packet: Packet) {
+    fn handle_packet(&mut self, mut packet: Packet, crashing: bool) {
         // Do custom handling for floods
         if let PacketType::FloodRequest(_) = packet.pack_type {
-            let response_packet = self.handle_flood_request(packet);
-
-            // need to split between request and response
+            if !crashing {
+                self.handle_flood_request(packet);
+            }
         } else {
-            let res = self.handle_normal_types(packet);
+            let res = self.respond_normal_types(packet, true);
             if let Some(response_packet) = res {
                 self.send_packet(response_packet);
             }
@@ -105,69 +107,78 @@ impl MyDrone {
 
 impl MyDrone {
     /// Return wheter it should crash or not
-    fn handle_normal_types(&self, mut packet: Packet) -> Option<Packet> {
+    fn respond_normal_types(&self, mut packet: Packet, crashing: bool) -> Option<Packet> {
         let droppable = matches!(packet.pack_type, PacketType::MsgFragment(_));
         let routing = &mut packet.routing_header;
 
+        // If unexpected packets
         if routing.current_hop() != Some(self.id) {
-            if !droppable {
-                // the protocol say so but it is just dumb
-                self.use_shortcut(packet);
-                return None;
-            }
-            return Some(create_nack(packet, UnexpectedRecipient(self.id)));
+            // the protocol say so but it is just dumb
+            return self.create_nack(packet, UnexpectedRecipient(self.id), droppable, true);
         }
 
-        //TODO may be broken check all function in repo
         if routing.is_last_hop() {
-            if !droppable {
-                // cannot nack only fragment, rest will be dropped
-                return None;
-            }
-            return Some(create_nack(packet, DestinationIsDrone));
+            // cannot nack only fragment, rest will be dropped
+            return self.create_nack(packet, DestinationIsDrone, droppable, false);
         }
-
-        // cannot be done before as asked by the protocol
-        routing.increase_hop_index();
 
         // next hop must exist
         let next_hop = routing.next_hop()?;
         if !self.packet_send.contains_key(&next_hop) {
-            if !droppable {
-                self.use_shortcut(packet);
-                return None;
-            }
-
-            return Some(create_nack(packet, NackType::ErrorInRouting(next_hop)));
+            return self.create_nack(packet, ErrorInRouting(next_hop), droppable, true);
         }
 
-        if droppable && self.should_drop() {
-            return Some(create_nack(packet, NackType::Dropped));
+        if droppable && utils::should_drop(self.pdr) {
+            return self.create_nack(packet, Dropped, droppable, false);
         }
 
-        // forward if all succeed
+        if crashing && droppable {
+            let current_hop = routing.current_hop()?;
+            return self.create_nack(packet, ErrorInRouting(current_hop), droppable, false);
+        }
+
+        // forward
+        // cannot be done before as asked by the protocol (should be before .is_last_hop)
+        routing.increase_hop_index();
         Some(packet)
     }
 
     /// return the response to be sent
-    fn handle_flood_request(&self, mut packet: Packet) -> Packet {
-        //TODO
-        todo!()
+    fn handle_flood_request(&self, mut packet: Packet) {
+        todo!() //TODO all
+                // TODO sending them
     }
 }
 
-// Packet handling part
 impl MyDrone {
-    fn should_drop(&self) -> bool {
-        let mut rng = rand::thread_rng();
-        rng.gen_range(0.0..1.0) < self.pdr
-    }
-}
+    fn create_nack(
+        &self,
+        packet: Packet,
+        nack_type: NackType,
+        droppable: bool,
+        is_shortcuttable: bool,
+    ) -> Option<Packet> {
+        if !droppable {
+            if is_shortcuttable {
+                self.use_shortcut(packet);
+            }
+            return None;
+        }
 
-// Common part
-impl MyDrone {
-    fn send<T>(to_send: T, channel: &Sender<T>) {
-        channel.send(to_send);
+        let mut reversed_routes = SourceRoutingHeader {
+            hop_index: 1,
+            hops: packet.routing_header.hops[0..=packet.routing_header.hop_index].to_vec(),
+        };
+        reversed_routes.reverse();
+
+        Some(Packet::new_nack(
+            reversed_routes,
+            packet.session_id,
+            Nack {
+                nack_type,
+                fragment_index: utils::get_fragment_index(packet.pack_type),
+            },
+        ))
     }
 
     fn use_shortcut(&self, packet: Packet) {
@@ -176,12 +187,29 @@ impl MyDrone {
     }
 
     fn send_packet(&self, packet: Packet) {
-        //TODO
+        let next = packet.routing_header.current_hop();
+        if let Some(next_hop) = next {
+            if let Some(channel) = self.packet_send.get(&next_hop) {
+                channel.send(packet);
+            }
+        }
+        // Ignore broken send (it is an internal problem
     }
 }
 
-fn create_nack(p0: Packet, p1: NackType) -> Packet {
-    // TODO invert srh and set index to 0 (or 1 cannot remeber)
-    // TODO create a new packet of type nack
-    todo!()
+mod utils {
+    use rand::Rng;
+    use wg_2024::packet::PacketType;
+
+    pub fn should_drop(pdr: f32) -> bool {
+        let mut rng = rand::thread_rng();
+        rng.gen_range(0.0..1.0) < pdr
+    }
+
+    pub fn get_fragment_index(packet_type: PacketType) -> u64 {
+        if let PacketType::MsgFragment(f) = packet_type {
+            return f.fragment_index;
+        }
+        0
+    }
 }
