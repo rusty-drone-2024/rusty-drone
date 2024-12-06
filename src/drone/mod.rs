@@ -1,4 +1,4 @@
-mod tests;
+mod test;
 mod utils;
 
 use crossbeam_channel::{select_biased, Receiver, Sender};
@@ -10,7 +10,7 @@ use wg_2024::packet::NackType::{DestinationIsDrone, Dropped, ErrorInRouting, Une
 use wg_2024::packet::{FloodResponse, Nack, NackType, NodeType, Packet, PacketType};
 
 #[allow(dead_code)]
-pub struct MyDrone {
+pub struct RustyDrone {
     id: NodeId,
     controller_send: Sender<DroneEvent>,
     controller_recv: Receiver<DroneCommand>,
@@ -20,7 +20,7 @@ pub struct MyDrone {
     received_floods: HashSet<(u64, NodeId)>,
 }
 
-impl Drone for MyDrone {
+impl Drone for RustyDrone {
     fn new(
         id: NodeId,
         controller_send: Sender<DroneEvent>,
@@ -65,7 +65,7 @@ impl Drone for MyDrone {
 }
 
 // Command/packets handling part
-impl MyDrone {
+impl RustyDrone {
     fn handle_commands(&mut self, command: DroneCommand) -> bool {
         match command {
             DroneCommand::Crash => return true,
@@ -94,7 +94,7 @@ impl MyDrone {
                 self.handle_flood_request(packet, already_rec);
             }
         } else {
-            let res = self.respond_normal_types(packet, true);
+            let res = self.respond_normal_types(packet, crashing);
             if let Some(response_packet) = res {
                 self.send_packet(response_packet);
             }
@@ -117,7 +117,7 @@ impl MyDrone {
 }
 
 /// Respond methods
-impl MyDrone {
+impl RustyDrone {
     /// Return wheter it should crash or not
     fn respond_normal_types(&self, mut packet: Packet, crashing: bool) -> Option<Packet> {
         let droppable = matches!(packet.pack_type, PacketType::MsgFragment(_));
@@ -141,6 +141,9 @@ impl MyDrone {
         }
 
         if droppable && utils::should_drop(self.pdr) {
+            let _ = self
+                .controller_send
+                .send(DroneEvent::PacketDropped(packet.clone()));
             return self.create_nack(packet, Dropped, droppable, false);
         }
 
@@ -200,7 +203,7 @@ impl MyDrone {
 }
 
 /// Utils of drone
-impl MyDrone {
+impl RustyDrone {
     fn create_nack(
         &self,
         packet: Packet,
@@ -246,7 +249,7 @@ impl MyDrone {
 }
 
 /// Packet sending
-impl MyDrone {
+impl RustyDrone {
     fn use_shortcut(&self, packet: Packet) {
         let _ = self
             .controller_send
@@ -257,7 +260,8 @@ impl MyDrone {
         let next = packet.routing_header.current_hop();
         if let Some(next_hop) = next {
             if let Some(channel) = self.packet_send.get(&next_hop) {
-                let _ = channel.send(packet);
+                let _ = channel.send(packet.clone());
+                let _ = self.controller_send.send(DroneEvent::PacketSent(packet));
             }
         }
         // Ignore broken send (it is an internal problem)
