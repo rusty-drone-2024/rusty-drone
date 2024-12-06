@@ -1,11 +1,8 @@
 use crate::testing_utils::{test_initialization_with_value, test_muliple_initialization};
 use crossbeam_channel::unbounded;
-use std::time::Duration;
 use wg_2024::controller::{DroneCommand, DroneEvent};
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{Fragment, Packet};
-
-const TIMEOUT_RECV: Duration = Duration::from_millis(100);
 
 #[test]
 fn test_drone_packet_fragment() {
@@ -29,7 +26,7 @@ fn test_drone_packet_fragment() {
         Fragment::from_string(0, 1, "Hello World!".to_string()),
     );
     drone2.handle_packet(packet.clone(), false);
-    let drone2_event = options2.event_recv.recv_timeout(TIMEOUT_RECV).unwrap();
+    let drone2_event = options2.event_recv.try_recv().unwrap();
     match drone2_event {
         DroneEvent::PacketSent(sent_packet) => {
             assert_eq!(packet.session_id, sent_packet.session_id)
@@ -54,14 +51,9 @@ fn test_drone_packet_forward() {
 
     (&mut packet.routing_header).increase_hop_index();
 
-    let forwarded_packet = new_receiver
-        .recv_timeout(TIMEOUT_RECV)
-        .expect("Timeout on recv");
+    let forwarded_packet = new_receiver.try_recv().unwrap();
     assert_eq!(packet.clone(), forwarded_packet);
 
-    let event = options
-        .event_recv
-        .recv_timeout(TIMEOUT_RECV)
-        .expect("Timeout on recv");
+    let event = options.event_recv.try_recv().unwrap();
     assert_eq!(event, DroneEvent::PacketSent(packet));
 }
