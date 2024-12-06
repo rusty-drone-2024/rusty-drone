@@ -9,77 +9,71 @@ use wg_2024::drone::Drone;
 use wg_2024::network::NodeId;
 use wg_2024::packet::Packet;
 
-fn create_drone_with_channels() -> (
-    MyDrone,
-    Receiver<DroneEvent>,
-    Sender<DroneCommand>,
-    Sender<Packet>,
-) {
-    let id = 1;
-    let (event_send, event_recv) = unbounded::<DroneEvent>();
-    let (command_send, command_recv) = unbounded::<DroneCommand>();
-    let (packet_send, packet_recv) = unbounded::<Packet>();
-    let neighbors_send = HashMap::<NodeId, Sender<Packet>>::new();
-    let pdr = 0.5f32;
-
-    return (
-        MyDrone::new(
-            id,
-            event_send.clone(),
-            command_recv.clone(),
-            packet_recv.clone(),
-            neighbors_send.clone(),
-            pdr,
-        ),
-        event_recv,
-        command_send,
-        packet_send,
-    );
+struct DroneCreationArgs {
+    id: u8,
+    controller_send: Sender<DroneEvent>,
+    controller_recv: Receiver<DroneCommand>,
+    packet_recv: Receiver<Packet>,
+    packet_send: HashMap<NodeId, Sender<Packet>>,
+    pdr: f32,
 }
 
-fn create_drone() -> MyDrone {
-    let (drone, _, _, _) = create_drone_with_channels();
-    return drone;
+impl DroneCreationArgs {
+    fn new() -> Self {
+        let (controller_send, _) = unbounded::<DroneEvent>();
+        let (_, controller_recv) = unbounded::<DroneCommand>();
+        let (_, packet_recv) = unbounded::<Packet>();
+        let packet_send = HashMap::<NodeId, Sender<Packet>>::new();
+        return DroneCreationArgs {
+            id: 1,
+            controller_send,
+            controller_recv,
+            packet_recv,
+            packet_send,
+            pdr: 0.5f32,
+        };
+    }
+}
+
+fn create_drone(args: &DroneCreationArgs) -> MyDrone {
+    return MyDrone::new(
+        args.id,
+        args.controller_send.clone(),
+        args.controller_recv.clone(),
+        args.packet_recv.clone(),
+        args.packet_send.clone(),
+        args.pdr,
+    );
 }
 
 #[test]
 fn test_drone_new() -> () {
-    let id = 1;
-    let (event_send, _) = unbounded::<DroneEvent>();
-    let (_, command_recv) = unbounded::<DroneCommand>();
-    let (_, packet_recv) = unbounded::<Packet>();
-    let neighbors_send = HashMap::<NodeId, Sender<Packet>>::new();
-    let pdr = 0.5f32;
+    let args = DroneCreationArgs::new();
+    let drone = create_drone(&args);
 
-    let drone = MyDrone::new(
-        id,
-        event_send.clone(),
-        command_recv.clone(),
-        packet_recv.clone(),
-        neighbors_send.clone(),
-        pdr,
-    );
-
-    assert_eq!(drone.id, id);
-    assert!(drone.controller_send.same_channel(&event_send));
-    assert!(drone.controller_recv.same_channel(&command_recv));
-    assert!(drone.packet_recv.same_channel(&packet_recv));
-    assert_eq!(drone.packet_send.len(), neighbors_send.len());
-    assert_eq!(drone.pdr, pdr);
+    assert_eq!(drone.id, args.id);
+    assert!(drone.controller_send.same_channel(&args.controller_send));
+    assert!(drone.controller_recv.same_channel(&args.controller_recv));
+    assert!(drone.packet_recv.same_channel(&args.packet_recv));
+    assert_eq!(drone.packet_send.len(), args.packet_send.len());
+    assert_eq!(drone.pdr, args.pdr);
 }
 
 // Commands
 #[test]
 fn test_drone_command_crash() -> () {
-    let mut drone = create_drone();
+    let args = DroneCreationArgs::new();
+    let mut drone = create_drone(&args);
     let crashed = drone.handle_commands(DroneCommand::Crash);
     assert!(crashed);
 }
 
 #[test]
 fn test_drone_command_set_packet_drop_rate() -> () {
+    let args = DroneCreationArgs::new();
     let pdr = 0.123;
-    let mut drone = create_drone();
+    assert_ne!(args.pdr, pdr);
+    let mut drone = create_drone(&args);
     let crashed = drone.handle_commands(DroneCommand::SetPacketDropRate(pdr));
     if (crashed) {
         return ();
@@ -90,8 +84,10 @@ fn test_drone_command_set_packet_drop_rate() -> () {
 
 #[test]
 fn test_drone_command_remove_sender() -> () {
+    let args = DroneCreationArgs::new();
     let node_id = 42;
-    let mut drone = create_drone();
+    assert!(!args.packet_send.contains_key(&node_id));
+    let mut drone = create_drone(&args);
     let (packet_send, _) = unbounded::<Packet>();
     let mut crashed = drone.handle_commands(DroneCommand::AddSender(node_id, packet_send.clone()));
     if (crashed) {
@@ -108,8 +104,10 @@ fn test_drone_command_remove_sender() -> () {
 
 #[test]
 fn test_drone_command_add_sender() -> () {
+    let args = DroneCreationArgs::new();
     let node_id = 42;
-    let mut drone = create_drone();
+    assert!(!args.packet_send.contains_key(&node_id));
+    let mut drone = create_drone(&args);
     let (packet_send, _) = unbounded::<Packet>();
     let crashed = drone.handle_commands(DroneCommand::AddSender(node_id, packet_send.clone()));
     if (crashed) {
