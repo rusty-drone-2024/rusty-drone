@@ -11,9 +11,9 @@ use wg_2024::packet::Packet;
 #[test]
 fn test_drone_new() -> () {
     let id = 1;
-    let (event_send, event_recv) = unbounded::<DroneEvent>();
-    let (command_send, command_recv) = unbounded::<DroneCommand>();
-    let (packet_send, packet_recv) = unbounded::<Packet>();
+    let (event_send, _event_recv) = unbounded::<DroneEvent>();
+    let (_command_send, command_recv) = unbounded::<DroneCommand>();
+    let (_packet_send, packet_recv) = unbounded::<Packet>();
     let neighbors_send = HashMap::<NodeId, Sender<Packet>>::new();
     let pdr = 0.5f32;
 
