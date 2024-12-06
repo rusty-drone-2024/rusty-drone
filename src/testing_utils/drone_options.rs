@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use crate::drone::RustyDrone;
 use crossbeam_channel::{unbounded, Receiver, Sender};
+use std::collections::HashMap;
 use wg_2024::controller::{DroneCommand, DroneEvent};
 use wg_2024::drone::Drone;
 use wg_2024::network::NodeId;
 use wg_2024::packet::Packet;
-use crate::drone::MyDrone;
 
 #[allow(dead_code)]
 pub struct DroneOptions {
@@ -34,8 +34,8 @@ impl DroneOptions {
         }
     }
 
-    pub fn create_drone(&self, id: NodeId, pdr: f32) -> MyDrone {
-        MyDrone::new(
+    pub fn create_drone(&self, id: NodeId, pdr: f32) -> RustyDrone {
+        RustyDrone::new(
             id,
             self.controller_send.clone(),
             self.controller_recv.clone(),

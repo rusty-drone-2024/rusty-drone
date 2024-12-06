@@ -3,7 +3,7 @@
 mod drone_command;
 mod drone_packet;
 
-use crate::testing_utils::{test_initialization_with_value};
+use crate::testing_utils::test_initialization_with_value;
 
 #[test]
 fn test_drone_new() {

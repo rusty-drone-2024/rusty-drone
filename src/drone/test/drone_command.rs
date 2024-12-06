@@ -1,7 +1,7 @@
+use crate::testing_utils::test_initialization;
 use crossbeam_channel::unbounded;
 use wg_2024::controller::DroneCommand;
 use wg_2024::packet::Packet;
-use crate::testing_utils::test_initialization;
 
 #[test]
 fn test_drone_command_crash() {
@@ -31,7 +31,7 @@ fn test_drone_command_add_sender() {
 }
 
 #[test]
-fn test_drone_command_remove_sender(){
+fn test_drone_command_remove_sender() {
     let (_options, mut drone) = test_initialization();
 
     let node_id = 42;
