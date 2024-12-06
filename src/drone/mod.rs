@@ -10,6 +10,7 @@ use wg_2024::packet::NackType::{DestinationIsDrone, Dropped, ErrorInRouting, Une
 use wg_2024::packet::{FloodResponse, Nack, NackType, NodeType, Packet, PacketType};
 
 #[allow(dead_code)]
+#[derive(Clone)]
 pub struct RustyDrone {
     id: NodeId,
     controller_send: Sender<DroneEvent>,
@@ -56,7 +57,7 @@ impl Drone for RustyDrone {
                 },
             }
         }
-
+        
         // crashing
         while let Ok(packet) = self.packet_recv.recv() {
             self.handle_packet(packet, true);
