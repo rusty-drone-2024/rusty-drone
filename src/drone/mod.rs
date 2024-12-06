@@ -1,22 +1,13 @@
-#![allow(unused)]
-
 mod tests;
 mod utils;
 
-use crate::drone::utils::get_fragment_index;
-use crossbeam_channel::{select_biased, unbounded, Receiver, RecvError, Sender};
+use crossbeam_channel::{select_biased, Receiver, Sender};
 use std::collections::{HashMap, HashSet};
-use std::process::Command;
-use std::time::Instant;
-use wg_2024::config::Config;
-use wg_2024::controller::DroneEvent::PacketDropped;
 use wg_2024::controller::{DroneCommand, DroneEvent};
 use wg_2024::drone::Drone;
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::NackType::{DestinationIsDrone, Dropped, ErrorInRouting, UnexpectedRecipient};
-use wg_2024::packet::{
-    Ack, FloodRequest, FloodResponse, Fragment, Nack, NackType, Packet, PacketType,
-};
+use wg_2024::packet::{FloodResponse, Nack, NackType, NodeType, Packet, PacketType};
 
 #[allow(dead_code)]
 pub struct MyDrone {
@@ -91,11 +82,16 @@ impl MyDrone {
     }
 
     /// return the response to be sent
-    fn handle_packet(&mut self, mut packet: Packet, crashing: bool) {
+    fn handle_packet(&mut self, packet: Packet, crashing: bool) {
         // Do custom handling for floods
-        if let PacketType::FloodRequest(_) = packet.pack_type {
+        if let PacketType::FloodRequest(ref flood) = packet.pack_type {
             if !crashing {
-                self.handle_flood_request(packet);
+                let already_rec = self.already_received_flood(
+                    flood.flood_id,
+                    flood.initiator_id,
+                    packet.session_id,
+                );
+                self.handle_flood_request(packet, already_rec);
             }
         } else {
             let res = self.respond_normal_types(packet, true);
@@ -104,8 +100,23 @@ impl MyDrone {
             }
         }
     }
+
+    fn handle_flood_request(&self, packet: Packet, already_rec: bool) {
+        if already_rec || self.packet_send.len() <= 1 {
+            if let Some(response_packet) = self.respond_flood_old(packet) {
+                self.send_packet(response_packet);
+            }
+        } else {
+            // Technically it is possible to receive a packet with wrong data and not
+            // knowing to who not send
+            if let Some((response_packet, previous_hop)) = self.respond_flood_new(packet) {
+                self.flood_packet(response_packet, previous_hop);
+            }
+        }
+    }
 }
 
+/// Respond methods
 impl MyDrone {
     /// Return wheter it should crash or not
     fn respond_normal_types(&self, mut packet: Packet, crashing: bool) -> Option<Packet> {
@@ -144,13 +155,51 @@ impl MyDrone {
         Some(packet)
     }
 
-    /// return the response to be sent
-    fn handle_flood_request(&self, mut packet: Packet) {
-        todo!() //TODO all
-                // TODO sending them
+    /// need to create flood response
+    fn respond_flood_old(&self, packet: Packet) -> Option<Packet> {
+        let mut flood;
+        if let PacketType::FloodRequest(ref flood_ref) = packet.pack_type {
+            flood = flood_ref.clone();
+        } else {
+            // Should not happen (i know it is SHIT)
+            return None;
+        }
+
+        flood.path_trace.push((self.id, NodeType::Drone));
+        let hops = flood
+            .path_trace
+            .iter()
+            .map(|(node_id, _)| *node_id)
+            .rev()
+            .collect::<Vec<_>>();
+
+        Some(Packet::new_flood_response(
+            SourceRoutingHeader { hop_index: 1, hops },
+            packet.session_id,
+            FloodResponse {
+                flood_id: flood.flood_id,
+                path_trace: flood.path_trace,
+            },
+        ))
+    }
+
+    /// need to update flood request
+    fn respond_flood_new(&self, mut packet: Packet) -> Option<(Packet, NodeId)> {
+        let flood;
+        if let PacketType::FloodRequest(ref mut flood_ref) = packet.pack_type {
+            flood = flood_ref;
+        } else {
+            // Should not happen (i know it is SHIT)
+            return None;
+        }
+
+        let prev_hop = flood.path_trace.last()?.0;
+        flood.path_trace.push((self.id, NodeType::Drone));
+        Some((packet, prev_hop))
     }
 }
 
+/// Utils of drone
 impl MyDrone {
     fn create_nack(
         &self,
@@ -182,8 +231,25 @@ impl MyDrone {
         ))
     }
 
+    fn already_received_flood(
+        &self,
+        flood_id: u64,
+        initiator_id: NodeId,
+        _session_id: u64,
+    ) -> bool {
+        // Should keep in mind all of them but will only use flood_id as per protol
+        // this is broken and wont work
+        // so we will see what to do
+        // TODO talk with WG
+        self.received_floods.contains(&(flood_id, initiator_id))
+    }
+}
+
+/// Packet sending
+impl MyDrone {
     fn use_shortcut(&self, packet: Packet) {
-        self.controller_send
+        let _ = self
+            .controller_send
             .send(DroneEvent::ControllerShortcut(packet));
     }
 
@@ -191,9 +257,17 @@ impl MyDrone {
         let next = packet.routing_header.current_hop();
         if let Some(next_hop) = next {
             if let Some(channel) = self.packet_send.get(&next_hop) {
-                channel.send(packet);
+                let _ = channel.send(packet);
             }
         }
-        // Ignore broken send (it is an internal problem
+        // Ignore broken send (it is an internal problem)
+    }
+
+    fn flood_packet(&self, packet: Packet, previous_hop: NodeId) {
+        for (node_id, channel) in self.packet_send.iter() {
+            if *node_id != previous_hop {
+                let _ = channel.send(packet.clone());
+            }
+        }
     }
 }
