@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 mod tests;
+mod utils;
 
 use crate::drone::utils::get_fragment_index;
 use crossbeam_channel::{select_biased, unbounded, Receiver, RecvError, Sender};
@@ -194,22 +195,5 @@ impl MyDrone {
             }
         }
         // Ignore broken send (it is an internal problem
-    }
-}
-
-mod utils {
-    use rand::Rng;
-    use wg_2024::packet::PacketType;
-
-    pub fn should_drop(pdr: f32) -> bool {
-        let mut rng = rand::thread_rng();
-        rng.gen_range(0.0..1.0) < pdr
-    }
-
-    pub fn get_fragment_index(packet_type: PacketType) -> u64 {
-        if let PacketType::MsgFragment(f) = packet_type {
-            return f.fragment_index;
-        }
-        0
     }
 }
