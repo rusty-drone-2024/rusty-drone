@@ -2,7 +2,7 @@ name: CargoTest
 on: [pull_request]
 
 jobs:
-  format:
+  test:
     runs-on: ubuntu-latest
 
     steps:
