@@ -1,3 +1,4 @@
+#![cfg(test)]
 mod drone_options;
 
 use wg_2024::network::NodeId;
