@@ -10,8 +10,12 @@ use wg_2024::network::NodeId;
 use wg_2024::packet::Packet;
 
 pub struct Network {
-    started: bool,
-    nodes: Vec<(DroneOptions, RustyDrone)>,
+    nodes: Vec<NetworkDrone>,
+}
+
+pub struct NetworkDrone {
+    options: DroneOptions,
+    drone: Option<RustyDrone>,
 }
 
 impl Network {
@@ -36,22 +40,20 @@ impl Network {
             .enumerate()
             .map(|(i, opt)| {
                 let drone = opt.create_drone(i as NodeId, 0.0);
-                (opt, drone)
+                NetworkDrone {
+                    options: opt,
+                    drone: Some(drone),
+                }
             })
             .collect();
 
-        Self {
-            started: false,
-            nodes,
-        }
+        Self { nodes }
     }
 
-    // DO NOT USE FOR NOW (also can panics like all in this file)
-    // TODO maybe fix panics
-    fn add_connections(&mut self, connections: &[(NodeId, NodeId)]) {
+    pub fn add_connections(&mut self, connections: &[(NodeId, NodeId)]) {
         for (start, end) in connections {
-            let options_start = &self.nodes[*start as usize].0;
-            let options_end = &self.nodes[*end as usize].0;
+            let options_start = &self.nodes[*start as usize].options;
+            let options_end = &self.nodes[*end as usize].options;
 
             let _ = options_start.command_send.send(DroneCommand::AddSender(
                 *end,
@@ -65,37 +67,34 @@ impl Network {
     }
 
     pub fn get_drone_packet_adder_channel(&self, node_id: NodeId) -> Sender<Packet> {
-        let options = &self.nodes[node_id as usize].0;
+        let options = &self.nodes[node_id as usize].options;
         options.packet_drone_in.clone()
     }
 
     pub fn get_drone_packet_remover_channel(&self, node_id: NodeId) -> Receiver<Packet> {
-        let options = &self.nodes[node_id as usize].0;
+        let options = &self.nodes[node_id as usize].options;
         options.packet_recv.clone()
     }
 
     pub fn get_drone_command_channel(&self, node_id: NodeId) -> Sender<DroneCommand> {
-        let options = &self.nodes[node_id as usize].0;
+        let options = &self.nodes[node_id as usize].options;
         options.command_send.clone()
     }
 
     pub fn get_drone_event_channel(&self, node_id: NodeId) -> Receiver<DroneEvent> {
-        let options = &self.nodes[node_id as usize].0;
+        let options = &self.nodes[node_id as usize].options;
         options.event_recv.clone()
     }
 
-    // After this you can't do any other operation
-    pub fn start_async(&mut self, running: &[NodeId]) {
-        if self.started {
-            return;
-        }
-        self.started = true;
-
+    /// Start some drone
+    /// Not started can be used as client and server by test
+    pub fn start_multi_async(&mut self, running: &[NodeId]) {
         for i in running.iter() {
-            let mut drone = self.nodes[*i as usize].1.clone();
-            thread::spawn(move || {
-                drone.run();
-            });
+            if let Some(mut drone) = self.nodes[*i as usize].drone.take() {
+                thread::spawn(move || {
+                    drone.run();
+                });
+            }
         }
     }
 }
