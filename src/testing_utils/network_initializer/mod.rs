@@ -4,6 +4,7 @@ use crate::drone::RustyDrone;
 use crate::testing_utils::DroneOptions;
 use crossbeam_channel::{Receiver, Sender};
 use std::thread;
+use std::time::Duration;
 use wg_2024::controller::{DroneCommand, DroneEvent};
 use wg_2024::drone::Drone;
 use wg_2024::network::NodeId;
@@ -19,10 +20,17 @@ pub struct NetworkDrone {
 }
 
 impl Network {
-    /// Create vector of dron with ID from 0 to amount
+    
+    pub fn create_and_run(amount: usize, connections: &[(NodeId, NodeId)], client: &[NodeId]) -> Self{
+        let mut res = Network::new(amount, connections, client);
+        res.start_multi_async();
+        res
+    }
+    
+    /// Create vector of drone with ID from 0 to amount
     /// With the given connections
     /// Duplicated connection are ignored and the graph is not directional
-    pub fn new(amount: usize, connections: &[(NodeId, NodeId)]) -> Self {
+    fn new(amount: usize, connections: &[(NodeId, NodeId)], client: &[NodeId]) -> Self {
         let mut options = (0..amount).map(|_| DroneOptions::new()).collect::<Vec<_>>();
 
         for (start, end) in connections {
@@ -38,10 +46,14 @@ impl Network {
         let nodes = options
             .into_iter()
             .enumerate()
-            .map(|(i, opt)| {
-                let drone = opt.create_drone(i as NodeId, 0.0);
+            .map(|(i, options)| {
+                if client.contains(&(i as NodeId)) {
+                    return NetworkDrone { options,  drone: None };
+                }
+                
+                let drone = options.create_drone(i as NodeId, 0.0);
                 NetworkDrone {
-                    options: opt,
+                    options,
                     drone: Some(drone),
                 }
             })
@@ -66,31 +78,45 @@ impl Network {
         }
     }
 
-    pub fn get_drone_packet_adder_channel(&self, node_id: NodeId) -> Sender<Packet> {
+    fn get_drone_packet_adder_channel(&self, node_id: NodeId) -> Sender<Packet> {
         let options = &self.nodes[node_id as usize].options;
         options.packet_drone_in.clone()
     }
 
-    pub fn get_drone_packet_remover_channel(&self, node_id: NodeId) -> Receiver<Packet> {
+    fn get_drone_packet_remover_channel(&self, node_id: NodeId) -> Receiver<Packet> {
         let options = &self.nodes[node_id as usize].options;
         options.packet_recv.clone()
     }
 
-    pub fn get_drone_command_channel(&self, node_id: NodeId) -> Sender<DroneCommand> {
+    fn get_drone_command_channel(&self, node_id: NodeId) -> Sender<DroneCommand> {
         let options = &self.nodes[node_id as usize].options;
         options.command_send.clone()
     }
 
-    pub fn get_drone_event_channel(&self, node_id: NodeId) -> Receiver<DroneEvent> {
+    fn get_drone_event_channel(&self, node_id: NodeId) -> Receiver<DroneEvent> {
         let options = &self.nodes[node_id as usize].options;
         options.event_recv.clone()
     }
 
+    pub fn send_as_client(&self, node_id: NodeId, packet: Packet){
+        let current = packet.routing_header.current_hop();
+        if let Some(current) = current {
+            let neighbour = self.nodes[node_id as usize].options.packet_send.get(&current);
+            if let Some(neighbour) = neighbour {
+                let _ = neighbour.send(packet);
+            }
+        }
+    }
+
+    pub fn recv_as_client(&self, node_id: NodeId,timeout: Duration) -> Option<Packet>{
+        return self.get_drone_packet_remover_channel(node_id).recv_timeout(timeout).ok();
+    }
+
     /// Start some drone
     /// Not started can be used as client and server by test
-    pub fn start_multi_async(&mut self, running: &[NodeId]) {
-        for i in running.iter() {
-            if let Some(mut drone) = self.nodes[*i as usize].drone.take() {
+    fn start_multi_async(&mut self) {
+        for node in self.nodes.iter_mut() {
+            if let Some(mut drone) = node.drone.take() {
                 thread::spawn(move || {
                     drone.run();
                 });

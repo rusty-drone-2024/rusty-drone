@@ -38,6 +38,11 @@ impl RustyDrone {
             return self.create_nack(packet, UnexpectedRecipient(self.id), droppable, true);
         }
 
+        if crashing && droppable {
+            let current_hop = routing.current_hop()?;
+            return self.create_nack(packet, ErrorInRouting(current_hop), droppable, false);
+        }
+
         if routing.is_last_hop() {
             // cannot nack only fragment, rest will be dropped
             return self.create_nack(packet, DestinationIsDrone, droppable, false);
@@ -46,6 +51,7 @@ impl RustyDrone {
         // next hop must exist
         let next_hop = routing.next_hop()?;
         if !self.packet_send.contains_key(&next_hop) {
+            routing.increase_hop_index();
             return self.create_nack(packet, ErrorInRouting(next_hop), droppable, true);
         }
 
@@ -55,12 +61,7 @@ impl RustyDrone {
                 .send(DroneEvent::PacketDropped(packet.clone()));
             return self.create_nack(packet, Dropped, droppable, false);
         }
-
-        if crashing && droppable {
-            let current_hop = routing.current_hop()?;
-            return self.create_nack(packet, ErrorInRouting(current_hop), droppable, false);
-        }
-
+        
         // forward
         // cannot be done before as asked by the protocol (should be before .is_last_hop)
         routing.increase_hop_index();

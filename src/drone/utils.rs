@@ -1,8 +1,7 @@
-use rand::Rng;
-use wg_2024::network::{NodeId, SourceRoutingHeader};
-use wg_2024::packet::{Nack, NackType, Packet, PacketType};
-use crate::drone::utils;
 use crate::drone::RustyDrone;
+use rand::Rng;
+use wg_2024::network::NodeId;
+use wg_2024::packet::{Nack, NackType, Packet, PacketType};
 
 impl RustyDrone{
     pub(super) fn should_drop(&self) -> bool {
@@ -24,18 +23,16 @@ impl RustyDrone{
             return None;
         }
 
-        let mut reversed_routes = SourceRoutingHeader {
-            hop_index: 1,
-            hops: packet.routing_header.hops[0..=packet.routing_header.hop_index].to_vec(),
-        };
+        let mut reversed_routes = packet.routing_header.sub_route(0..=packet.routing_header.hop_index)?;
         reversed_routes.reverse();
+        reversed_routes.hop_index = 1;
 
         Some(Packet::new_nack(
             reversed_routes,
             packet.session_id,
             Nack {
                 nack_type,
-                fragment_index: utils::get_fragment_index(packet.pack_type),
+                fragment_index: get_fragment_index(packet.pack_type),
             },
         ))
     }
