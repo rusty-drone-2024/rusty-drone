@@ -9,7 +9,6 @@ use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::NackType::{DestinationIsDrone, Dropped, ErrorInRouting, UnexpectedRecipient};
 use wg_2024::packet::{FloodResponse, Nack, NackType, NodeType, Packet, PacketType};
 
-#[allow(dead_code)]
 pub struct RustyDrone {
     id: NodeId,
     controller_send: Sender<DroneEvent>,
