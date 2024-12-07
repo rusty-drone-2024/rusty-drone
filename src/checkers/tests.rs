@@ -2,9 +2,9 @@
 
 use crate::testing_utils::data::new_test_fragment_packet;
 use crate::testing_utils::Network;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-const TIMEOUT: Duration = Duration::from_millis(50);
+const TIMEOUT: Duration = Duration::from_millis(100);
 
 #[test]
 fn test_drone_packet_3_hop() {
@@ -32,6 +32,8 @@ fn test_drone_packet_255_hop() {
     net.start_async(&(1..255).collect::<Vec<_>>());
     
     let mut packet = new_test_fragment_packet(&(0..=255).collect::<Vec<_>>());
+    
+    let time = Instant::now();
     net.get_drone_packet_adder_channel(1)
         .try_send(packet.clone())
         .unwrap();
@@ -40,7 +42,9 @@ fn test_drone_packet_255_hop() {
         .get_drone_packet_remover_channel(255)
         .recv_timeout(TIMEOUT)
         .unwrap();
+    let elapsed = time.elapsed();
 
     (&mut packet.routing_header).hop_index = 255;
     assert_eq!(packet, response);
+    assert!(elapsed.le(&Duration::from_millis(40)));
 }
