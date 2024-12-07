@@ -20,13 +20,16 @@ pub struct NetworkDrone {
 }
 
 impl Network {
-    
-    pub fn create_and_run(amount: usize, connections: &[(NodeId, NodeId)], client: &[NodeId]) -> Self{
+    pub fn create_and_run(
+        amount: usize,
+        connections: &[(NodeId, NodeId)],
+        client: &[NodeId],
+    ) -> Self {
         let mut res = Network::new(amount, connections, client);
         res.start_multi_async();
         res
     }
-    
+
     /// Create vector of drone with ID from 0 to amount
     /// With the given connections
     /// Duplicated connection are ignored and the graph is not directional
@@ -48,9 +51,12 @@ impl Network {
             .enumerate()
             .map(|(i, options)| {
                 if client.contains(&(i as NodeId)) {
-                    return NetworkDrone { options,  drone: None };
+                    return NetworkDrone {
+                        options,
+                        drone: None,
+                    };
                 }
-                
+
                 let drone = options.create_drone(i as NodeId, 0.0);
                 NetworkDrone {
                     options,
@@ -98,18 +104,24 @@ impl Network {
         options.event_recv.clone()
     }
 
-    pub fn send_as_client(&self, node_id: NodeId, packet: Packet){
+    pub fn send_as_client(&self, node_id: NodeId, packet: Packet) {
         let current = packet.routing_header.current_hop();
         if let Some(current) = current {
-            let neighbour = self.nodes[node_id as usize].options.packet_send.get(&current);
+            let neighbour = self.nodes[node_id as usize]
+                .options
+                .packet_send
+                .get(&current);
             if let Some(neighbour) = neighbour {
                 let _ = neighbour.send(packet);
             }
         }
     }
 
-    pub fn recv_as_client(&self, node_id: NodeId,timeout: Duration) -> Option<Packet>{
-        return self.get_drone_packet_remover_channel(node_id).recv_timeout(timeout).ok();
+    pub fn recv_as_client(&self, node_id: NodeId, timeout: Duration) -> Option<Packet> {
+        return self
+            .get_drone_packet_remover_channel(node_id)
+            .recv_timeout(timeout)
+            .ok();
     }
 
     /// Start some drone

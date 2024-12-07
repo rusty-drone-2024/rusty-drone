@@ -1,7 +1,7 @@
+use crate::drone::RustyDrone;
 use wg_2024::controller::DroneEvent;
 use wg_2024::network::NodeId;
 use wg_2024::packet::Packet;
-use crate::drone::RustyDrone;
 
 impl RustyDrone {
     pub(super) fn use_shortcut(&self, packet: Packet) {

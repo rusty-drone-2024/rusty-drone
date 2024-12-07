@@ -1,9 +1,9 @@
+mod channels;
+mod command_handler;
+mod flood_handler;
+mod packet_handler;
 mod test;
 mod utils;
-mod packet_handler;
-mod channels;
-mod flood_handler;
-mod command_handler;
 
 use crossbeam_channel::{select_biased, Receiver, Sender};
 use std::collections::{HashMap, HashSet};

@@ -1,8 +1,8 @@
+use crate::drone::RustyDrone;
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{FloodResponse, NodeType, Packet, PacketType};
-use crate::drone::RustyDrone;
 
-impl RustyDrone{
+impl RustyDrone {
     pub(super) fn handle_flood_request(&self, packet: Packet, already_rec: bool) {
         if already_rec || self.packet_send.len() <= 1 {
             if let Some(response_packet) = self.respond_old_flood(packet) {

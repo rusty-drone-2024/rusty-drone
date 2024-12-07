@@ -1,6 +1,9 @@
 #![cfg(test)]
-use wg_2024::tests::{generic_chain_fragment_ack, generic_chain_fragment_drop, generic_fragment_drop, generic_fragment_forward};
 use crate::drone::RustyDrone;
+use wg_2024::tests::{
+    generic_chain_fragment_ack, generic_chain_fragment_drop, generic_fragment_drop,
+    generic_fragment_forward,
+};
 
 #[test]
 pub fn test_generic_fragment_forward() {

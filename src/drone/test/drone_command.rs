@@ -42,7 +42,7 @@ fn test_drone_command_add_duplicated_sender() {
     assert!(!drone.handle_commands(DroneCommand::AddSender(node_id, packet_send1.clone())));
     assert!(drone.packet_send.contains_key(&node_id));
     assert!(packet_send1.same_channel(drone.packet_send.get(&node_id).unwrap()));
-    
+
     assert!(!drone.handle_commands(DroneCommand::AddSender(node_id, packet_send2.clone())));
     assert!(drone.packet_send.contains_key(&node_id));
     assert!(packet_send2.same_channel(drone.packet_send.get(&node_id).unwrap()));

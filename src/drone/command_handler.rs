@@ -1,5 +1,5 @@
-use wg_2024::controller::DroneCommand;
 use crate::drone::RustyDrone;
+use wg_2024::controller::DroneCommand;
 
 impl RustyDrone {
     pub(super) fn handle_commands(&mut self, command: DroneCommand) -> bool {

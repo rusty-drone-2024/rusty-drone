@@ -1,9 +1,7 @@
-use wg_2024::controller::DroneEvent;
-use wg_2024::packet::{Packet, PacketType};
-use wg_2024::packet::NackType::{DestinationIsDrone, Dropped, ErrorInRouting, UnexpectedRecipient};
 use crate::drone::RustyDrone;
-
-
+use wg_2024::controller::DroneEvent;
+use wg_2024::packet::NackType::{DestinationIsDrone, Dropped, ErrorInRouting, UnexpectedRecipient};
+use wg_2024::packet::{Packet, PacketType};
 
 // Command/packets handling part
 impl RustyDrone {
@@ -26,9 +24,13 @@ impl RustyDrone {
             }
         }
     }
-    
+
     /// Return wheter it should crash or not
-    pub(super) fn respond_normal_types(&self, mut packet: Packet, crashing: bool) -> Option<Packet> {
+    pub(super) fn respond_normal_types(
+        &self,
+        mut packet: Packet,
+        crashing: bool,
+    ) -> Option<Packet> {
         let droppable = matches!(packet.pack_type, PacketType::MsgFragment(_));
         let routing = &mut packet.routing_header;
 
@@ -61,7 +63,7 @@ impl RustyDrone {
                 .send(DroneEvent::PacketDropped(packet.clone()));
             return self.create_nack(packet, Dropped, droppable, false);
         }
-        
+
         // forward
         // cannot be done before as asked by the protocol (should be before .is_last_hop)
         routing.increase_hop_index();
