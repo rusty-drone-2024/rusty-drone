@@ -4,7 +4,7 @@ use crate::testing_utils::data::new_test_fragment_packet;
 use crate::testing_utils::Network;
 use std::time::Duration;
 
-const TIMEOUT: Duration = Duration::from_secs(2000);
+const TIMEOUT: Duration = Duration::from_millis(1);
 
 #[test]
 fn test_drone_packet_fragment() {
