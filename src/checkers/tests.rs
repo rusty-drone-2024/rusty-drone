@@ -45,5 +45,6 @@ fn test_drone_packet_255_hop() {
 
     (&mut packet.routing_header).hop_index = 255;
     assert_eq!(packet, response);
+    // TODO this test can fail on slower machines
     assert!(elapsed.le(&Duration::from_millis(40)));
 }
