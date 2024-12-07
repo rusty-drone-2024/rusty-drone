@@ -57,7 +57,7 @@ impl Drone for RustyDrone {
                 },
             }
         }
-        
+
         // crashing
         while let Ok(packet) = self.packet_recv.recv() {
             self.handle_packet(packet, true);

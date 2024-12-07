@@ -19,17 +19,13 @@ impl Network {
     /// With the given connections
     /// Duplicated connection are ignored and the graph is not directional
     pub fn new(amount: usize, connections: &[(NodeId, NodeId)]) -> Self {
-        let mut options = (0..amount)
-            .map(|_|{ DroneOptions::new() })
-            .collect::<Vec<_>>();
+        let mut options = (0..amount).map(|_| DroneOptions::new()).collect::<Vec<_>>();
 
         for (start, end) in connections {
             let start_input = options[*start as usize].packet_drone_in.clone();
             let end_input = options[*end as usize].packet_drone_in.clone();
 
-            options[*start as usize]
-                .packet_send
-                .insert(*end, end_input);
+            options[*start as usize].packet_send.insert(*end, end_input);
             options[*end as usize]
                 .packet_send
                 .insert(*start, start_input);
