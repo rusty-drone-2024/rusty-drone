@@ -1,1 +1,3 @@
-mod tests;
+#![cfg(test)]
+mod integrations;
+mod wgl_test;

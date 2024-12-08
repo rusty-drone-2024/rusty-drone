@@ -1,4 +1,6 @@
 #![cfg(test)]
+#![allow(dead_code)]
+
 pub mod data;
 mod drone_options;
 mod network_initializer;
