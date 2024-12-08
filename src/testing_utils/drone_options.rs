@@ -44,4 +44,8 @@ impl DroneOptions {
             pdr,
         )
     }
+
+    pub fn assert_expect_drone_event(&self, expected_event: DroneEvent){
+        assert_eq!(self.event_recv.try_recv().unwrap(), expected_event);
+    }
 }

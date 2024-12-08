@@ -11,13 +11,14 @@ impl RustyDrone {
 
     pub(super) fn create_nack(
         &self,
-        packet: Packet,
+        mut packet: Packet,
         nack_type: NackType,
         droppable: bool,
         is_shortcuttable: bool,
     ) -> Option<Packet> {
         if !droppable {
             if is_shortcuttable {
+                packet.routing_header.increase_hop_index();
                 self.use_shortcut(packet);
             }
             return None;

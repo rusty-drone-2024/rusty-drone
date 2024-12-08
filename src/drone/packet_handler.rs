@@ -53,7 +53,6 @@ impl RustyDrone {
         // next hop must exist
         let next_hop = routing.next_hop()?;
         if !self.packet_send.contains_key(&next_hop) {
-            routing.increase_hop_index();
             return self.create_nack(packet, ErrorInRouting(next_hop), droppable, true);
         }
 
