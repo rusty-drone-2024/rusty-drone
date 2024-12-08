@@ -4,7 +4,7 @@ use wg_2024::packet::{FloodResponse, NodeType, Packet, PacketType};
 
 impl RustyDrone {
     pub(super) fn handle_flood_request(&self, packet: Packet, already_rec: bool) {
-        if already_rec || self.packet_send.len() <= 1 {
+        if already_rec {
             if let Some(response_packet) = self.respond_old_flood(packet) {
                 self.send_packet(response_packet);
             }
@@ -47,16 +47,11 @@ impl RustyDrone {
 
     /// need to update flood request
     pub(super) fn respond_new_flood(&self, mut packet: Packet) -> Option<(Packet, Option<NodeId>)> {
-        let flood;
-        if let PacketType::FloodRequest(ref mut flood_ref) = packet.pack_type {
-            flood = flood_ref;
-        } else {
-            // Should not happen (i know it is SHIT)
-            return None;
+        if let PacketType::FloodRequest(ref mut flood) = packet.pack_type {
+            let prev_hop = flood.path_trace.last().map(|x| x.0);
+            flood.path_trace.push((self.id, NodeType::Drone));
+            return Some((packet, prev_hop));
         }
-
-        let prev_hop = flood.path_trace.last().map(|(node_id, _)| node_id.clone());
-        flood.path_trace.push((self.id, NodeType::Drone));
-        Some((packet, prev_hop))
+        None // Should not happen
     }
 }

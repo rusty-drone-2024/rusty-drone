@@ -35,7 +35,12 @@ pub fn new_flood_request(session_id: u64, flood_id: u64, initiator_id: NodeId) -
     Packet::new_flood_request(
         SourceRoutingHeader::new(vec![], 0),
         session_id,
-        FloodRequest::new(flood_id, initiator_id),
+        FloodRequest{
+            flood_id,
+            initiator_id,
+            // Stupid assumption for testing
+            path_trace: vec![(initiator_id, NodeType::Client)],
+        }
     )
 }
 
