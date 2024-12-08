@@ -22,7 +22,6 @@ fn simple_drone_with_exit(
     (options, drone, new_receiver)
 }
 
-
 fn simple_drone_with_two_exit(
     id: NodeId,
     pdr: f32,
@@ -40,7 +39,14 @@ fn simple_drone_with_two_exit(
     (options, drone, new_receiver1, new_receiver2)
 }
 
-fn basic_single_hop_test(packet: Packet, expected_packet: Packet, crashing: bool, pdr: f32, node_id: NodeId, exit: NodeId) -> DroneOptions{
+fn basic_single_hop_test(
+    packet: Packet,
+    expected_packet: Packet,
+    crashing: bool,
+    pdr: f32,
+    node_id: NodeId,
+    exit: NodeId,
+) -> DroneOptions {
     let (options, mut drone, packet_exit) = simple_drone_with_exit(node_id, pdr, exit);
 
     drone.handle_packet(packet, crashing);
@@ -49,7 +55,13 @@ fn basic_single_hop_test(packet: Packet, expected_packet: Packet, crashing: bool
     options
 }
 
-fn basic_single_hop_test_fail(packet: Packet, crashing: bool, pdr: f32, node_id: NodeId, exit: NodeId) -> DroneOptions{
+fn basic_single_hop_test_fail(
+    packet: Packet,
+    crashing: bool,
+    pdr: f32,
+    node_id: NodeId,
+    exit: NodeId,
+) -> DroneOptions {
     let (options, mut drone, packet_exit) = simple_drone_with_exit(node_id, pdr, exit);
 
     drone.handle_packet(packet, crashing);
@@ -72,7 +84,8 @@ fn test_drone_packet_forward_crash() {
     let packet = new_test_fragment_packet(&[10, 11, 12], 5);
     let expected_packet = new_test_nack(&[11, 10], ErrorInRouting(12), 5, 1);
 
-    let options = basic_single_hop_test(packet.clone(), expected_packet.clone(), false, 0.0, 11, 10);
+    let options =
+        basic_single_hop_test(packet.clone(), expected_packet.clone(), false, 0.0, 11, 10);
     options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
     options.assert_expect_drone_event_fail();
 }
@@ -82,7 +95,8 @@ fn test_drone_packet_forward_nack() {
     let packet = new_test_nack(&[10, 11, 12], Dropped, 5, 1);
     let expected_packet = new_forwarded(&packet);
 
-    let options = basic_single_hop_test(packet.clone(), expected_packet.clone(), false, 0.0, 11, 12);
+    let options =
+        basic_single_hop_test(packet.clone(), expected_packet.clone(), false, 0.0, 11, 12);
     options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
     options.assert_expect_drone_event_fail();
 }
@@ -102,7 +116,8 @@ fn test_drone_packet_forward_nack_pdr_max() {
     let packet = new_test_nack(&[10, 11, 12], Dropped, 5, 1);
     let expected_packet = new_forwarded(&packet);
 
-    let options = basic_single_hop_test(packet.clone(), expected_packet.clone(), false, 1.0, 11, 12);
+    let options =
+        basic_single_hop_test(packet.clone(), expected_packet.clone(), false, 1.0, 11, 12);
     options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
     options.assert_expect_drone_event_fail();
 }
@@ -111,12 +126,10 @@ fn test_drone_packet_forward_nack_pdr_max() {
 fn test_drone_packet_nack_to_nothing_shortcut() {
     let packet = new_test_nack(&[10, 11, 12], Dropped, 5, 1);
 
-    let options = basic_single_hop_test_fail(packet.clone(),false, 1.0, 11, 10);
+    let options = basic_single_hop_test_fail(packet.clone(), false, 1.0, 11, 10);
     options.assert_expect_drone_event(DroneEvent::ControllerShortcut(new_forwarded(&packet)));
     options.assert_expect_drone_event_fail();
 }
-
-
 
 #[test]
 fn test_drone_packet_dropped() {

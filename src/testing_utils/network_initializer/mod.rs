@@ -104,7 +104,7 @@ impl Network {
         options.event_recv.clone()
     }
 
-    pub fn send_as_client(&self, node_id: NodeId, packet: Packet) -> Option<()>{
+    pub fn send_as_client(&self, node_id: NodeId, packet: Packet) -> Option<()> {
         let current = packet.routing_header.current_hop();
         if let Some(current) = current {
             let neighbour = self.nodes[node_id as usize]
@@ -119,8 +119,7 @@ impl Network {
     }
 
     pub fn recv_as_client(&self, node_id: NodeId, timeout: Duration) -> Option<Packet> {
-        self
-            .get_drone_packet_remover_channel(node_id)
+        self.get_drone_packet_remover_channel(node_id)
             .recv_timeout(timeout)
             .ok()
     }
