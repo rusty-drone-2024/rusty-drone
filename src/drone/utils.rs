@@ -12,15 +12,17 @@ impl RustyDrone {
 
     pub(super) fn create_nack(
         &self,
-        mut packet: Packet,
+        packet: &Packet,
         nack_type: NackType,
         droppable: bool,
         is_shortcuttable: bool,
     ) -> Option<Packet> {
+        let mut packet = packet.clone();
+        
         if !droppable {
             if is_shortcuttable {
                 packet.routing_header.increase_hop_index();
-                self.use_shortcut(packet);
+                self.use_shortcut(&packet);
             }
             return None;
         }
@@ -36,7 +38,7 @@ impl RustyDrone {
             packet.session_id,
             Nack {
                 nack_type,
-                fragment_index: get_fragment_index(packet.pack_type),
+                fragment_index: get_fragment_index(&packet.pack_type),
             },
         ))
     }
@@ -45,14 +47,13 @@ impl RustyDrone {
         &mut self,
         flood_id: u64,
         initiator_id: NodeId,
-        _session_id: u64,
     ) -> bool {
         // TODO talk with WG
         !self.received_floods.insert((flood_id, initiator_id))
     }
 }
 
-pub(super) fn get_fragment_index(packet_type: PacketType) -> u64 {
+pub(super) fn get_fragment_index(packet_type: &PacketType) -> u64 {
     extract!(packet_type, PacketType::MsgFragment)
         .unwrap()
         .fragment_index

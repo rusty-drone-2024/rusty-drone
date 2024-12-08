@@ -47,20 +47,22 @@ impl Drone for RustyDrone {
         while !crashing {
             select_biased! {
                 recv(self.controller_recv) -> res => {
-                    if let Ok(command) = res{
-                        crashing = self.handle_commands(command)
+                    if let Ok(ref command) = res{
+                        crashing = self.handle_commands(command);
                     }
                 },
                 recv(self.packet_recv) -> res => {
-                    if let Ok(packet) = res{
-                        self.handle_packet(packet, false)
+                    if let Ok(ref packet) = res{
+                        println!("Drone {} --received--> {}", self.id, packet);
+                        self.handle_packet(packet, false);
+                        println!("Drone {} --sent-->", self.id)
                     }
                 },
             }
         }
 
         // crashing
-        while let Ok(packet) = self.packet_recv.recv() {
+        while let Ok(ref packet) = self.packet_recv.recv() {
             self.handle_packet(packet, true);
         }
     }

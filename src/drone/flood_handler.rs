@@ -5,22 +5,18 @@ use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{NodeType, Packet, PacketType};
 
 impl RustyDrone {
-    pub(super) fn handle_flood_request(&self, packet: Packet, already_rec: bool) {
+    pub(super) fn handle_flood_request(&self, packet: &Packet, already_rec: bool) {
         if already_rec {
-            if let Some(response_packet) = self.respond_old_flood(packet) {
-                self.send_packet(response_packet);
-            }
+            let response_packet = self.respond_old_flood(packet);
+            self.send_packet(&response_packet);
         } else {
-            // Technically it is possible to receive a packet with wrong data and not
-            // knowing to who not send
-            if let Some((response_packet, previous_hop)) = self.respond_new_flood(packet) {
-                self.flood_packet(response_packet, previous_hop);
-            }
+            let (response_packet, previous_hop) = self.respond_new_flood(packet);
+            self.flood_packet(&response_packet, previous_hop);
         }
     }
 
     /// need to create flood response
-    pub(super) fn respond_old_flood(&self, packet: Packet) -> Option<Packet> {
+    pub(super) fn respond_old_flood(&self, packet: &Packet) -> Packet {
         let flood = extract!(packet.pack_type, PacketType::FloodRequest).unwrap();
         let mut flood_res = new_flood_response(flood);
 
@@ -36,15 +32,16 @@ impl RustyDrone {
             hops.push(flood.initiator_id);
         }
 
-        Some(Packet::new_flood_response(
+        Packet::new_flood_response(
             SourceRoutingHeader { hop_index: 1, hops },
             packet.session_id,
             flood_res,
-        ))
+        )
     }
 
     /// need to update flood request
-    pub(super) fn respond_new_flood(&self, mut packet: Packet) -> Option<(Packet, NodeId)> {
+    pub(super) fn respond_new_flood(&self, packet: &Packet) -> (Packet, NodeId) {
+        let mut packet = packet.clone();
         let flood = extract_mut!(packet.pack_type, PacketType::FloodRequest).unwrap();
 
         let prev_hop = flood
@@ -53,6 +50,6 @@ impl RustyDrone {
             .map(|x| x.0)
             .unwrap_or(flood.initiator_id);
         flood.path_trace.push((self.id, NodeType::Drone));
-        Some((packet, prev_hop))
+        (packet, prev_hop)
     }
 }

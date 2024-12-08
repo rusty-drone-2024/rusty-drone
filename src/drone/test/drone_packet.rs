@@ -19,7 +19,7 @@ fn basic_single_hop_test(
 ) -> DroneOptions {
     let (options, mut drone, packet_exit) = simple_drone_with_exit(node_id, pdr, exit);
 
-    drone.handle_packet(packet, crashing);
+    drone.handle_packet(&packet, crashing);
     assert_eq!(expected_packet, packet_exit.try_recv().unwrap());
 
     options
@@ -34,7 +34,7 @@ fn basic_single_hop_test_fail(
 ) -> DroneOptions {
     let (options, mut drone, packet_exit) = simple_drone_with_exit(node_id, pdr, exit);
 
-    drone.handle_packet(packet, crashing);
+    drone.handle_packet(&packet, crashing);
     assert!(packet_exit.try_recv().is_err());
 
     options
@@ -117,7 +117,7 @@ fn test_drone_packet_dropped() {
     let expected = new_test_nack(&[11, 10], Dropped, 5, 1);
 
     let (options, mut drone, packet_exit, _) = simple_drone_with_two_exit(11, 1.0, 10, 12);
-    drone.handle_packet(packet.clone(), false);
+    drone.handle_packet(&packet, false);
     assert_eq!(expected, packet_exit.try_recv().unwrap());
 
     options.assert_expect_drone_event(DroneEvent::PacketDropped(packet));

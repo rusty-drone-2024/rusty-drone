@@ -13,7 +13,7 @@ fn test_drone_flood_req_inclusive() {
     let (options, mut drone, packet_exit1, packet_exit2) =
         simple_drone_with_two_exit(11, 1.0, 12, 13);
 
-    drone.handle_packet(packet, false);
+    drone.handle_packet(&packet, false);
     assert_eq!(expected, packet_exit1.try_recv().unwrap());
     assert_eq!(expected, packet_exit2.try_recv().unwrap());
 
@@ -33,8 +33,8 @@ fn test_drone_flood_res_inclusive() {
     );
 
     let (options, mut drone, packet_exit) = simple_drone_with_exit(11, 1.0, 10);
-    drone.handle_packet(packet.clone(), false);
-    drone.handle_packet(packet, false);
+    drone.handle_packet(&packet, false);
+    drone.handle_packet(&packet, false);
 
     assert_eq!(expected.clone(), packet_exit.try_recv().unwrap());
 
@@ -50,7 +50,7 @@ fn test_drone_flood_req() {
     let (options, mut drone, packet_exit1, packet_exit2) =
         simple_drone_with_two_exit(11, 1.0, 12, 13);
 
-    drone.handle_packet(packet, false);
+    drone.handle_packet(&packet, false);
     assert_eq!(expected, packet_exit1.try_recv().unwrap());
     assert_eq!(expected, packet_exit2.try_recv().unwrap());
 
@@ -70,8 +70,8 @@ fn test_drone_flood_res() {
     );
 
     let (options, mut drone, packet_exit) = simple_drone_with_exit(11, 1.0, 10);
-    drone.handle_packet(packet.clone(), false);
-    drone.handle_packet(packet, false);
+    drone.handle_packet(&packet, false);
+    drone.handle_packet(&packet, false);
 
     assert_eq!(expected.clone(), packet_exit.try_recv().unwrap());
 
