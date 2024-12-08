@@ -52,3 +52,27 @@ fn test_drone_packet_255_hop() {
     assert_eq!(packet, response);
     assert!(elapsed.le(&(TIMEOUT * 3)), "Too Slow");
 }
+
+#[test]
+fn test_drone_error_in_routing() {
+    let net = Network::create_and_run(5, &[(0, 1), (1,2)], &[0, 4]);
+
+    let packet = new_test_fragment_packet(&[0, 1, 2, 4], 5);
+    net.send_as_client(0, packet).unwrap();
+    
+    let response = net.recv_as_client(0, TIMEOUT).unwrap();
+    let expected = new_test_nack(&[2,1,0], ErrorInRouting(4), 5, 2);
+    assert_eq!(expected, response);
+}
+
+#[test]
+fn test_drone_destination_is_drone() {
+    let net = Network::create_and_run(4, &[(0, 1), (1, 2), (2, 3)], &[0, 3]);
+
+    let packet = new_test_fragment_packet(&[0, 1, 2], 5);
+    net.send_as_client(0, packet.clone()).unwrap();
+    
+    let response = net.recv_as_client(0, TIMEOUT).unwrap();
+    let expected = new_test_nack(&[2,1,0], DestinationIsDrone, 5, 2);
+    assert_eq!(expected, response);
+}
