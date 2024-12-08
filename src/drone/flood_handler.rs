@@ -22,7 +22,7 @@ impl RustyDrone {
     /// need to create flood response
     pub(super) fn respond_old_flood(&self, packet: Packet) -> Option<Packet> {
         let flood = extract!(packet.pack_type, PacketType::FloodRequest).unwrap();
-        let mut flood_res = new_flood_response(&flood);
+        let mut flood_res = new_flood_response(flood);
 
         flood_res.path_trace.push((self.id, NodeType::Drone));
         let mut hops = flood_res
