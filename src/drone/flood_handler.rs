@@ -46,7 +46,7 @@ impl RustyDrone {
     }
 
     /// need to update flood request
-    pub(super) fn respond_new_flood(&self, mut packet: Packet) -> Option<(Packet, NodeId)> {
+    pub(super) fn respond_new_flood(&self, mut packet: Packet) -> Option<(Packet, Option<NodeId>)> {
         let flood;
         if let PacketType::FloodRequest(ref mut flood_ref) = packet.pack_type {
             flood = flood_ref;
@@ -55,7 +55,7 @@ impl RustyDrone {
             return None;
         }
 
-        let prev_hop = flood.path_trace.last()?.0;
+        let prev_hop = flood.path_trace.last().map(|(node_id, _)| node_id.clone());
         flood.path_trace.push((self.id, NodeType::Drone));
         Some((packet, prev_hop))
     }

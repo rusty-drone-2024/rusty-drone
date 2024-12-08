@@ -1,10 +1,9 @@
 #![cfg(test)]
+use crate::checkers::TIMEOUT;
 use crate::testing_utils::data::{new_test_fragment_packet, new_test_nack};
 use crate::testing_utils::Network;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use wg_2024::packet::NackType::{DestinationIsDrone, ErrorInRouting};
-
-const TIMEOUT: Duration = Duration::from_millis(100);
 
 #[test]
 fn test_drone_packet_1_hop() {

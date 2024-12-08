@@ -21,9 +21,9 @@ impl RustyDrone {
         // Ignore broken send (it is an internal problem)
     }
 
-    pub(super) fn flood_packet(&self, packet: Packet, previous_hop: NodeId) {
+    pub(super) fn flood_packet(&self, packet: Packet, previous_hop: Option<NodeId>) {
         for (node_id, channel) in self.packet_send.iter() {
-            if *node_id != previous_hop {
+            if Some(*node_id) != previous_hop {
                 let _ = channel.send(packet.clone());
             }
         }

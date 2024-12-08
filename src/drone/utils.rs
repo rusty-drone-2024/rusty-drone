@@ -41,7 +41,7 @@ impl RustyDrone {
     }
 
     pub(super) fn already_received_flood(
-        &self,
+        &mut self,
         flood_id: u64,
         initiator_id: NodeId,
         _session_id: u64,
@@ -50,7 +50,7 @@ impl RustyDrone {
         // this is broken and wont work
         // so we will see what to do
         // TODO talk with WG
-        self.received_floods.contains(&(flood_id, initiator_id))
+        !self.received_floods.insert((flood_id, initiator_id))
     }
 }
 
@@ -58,5 +58,5 @@ pub(super) fn get_fragment_index(packet_type: PacketType) -> u64 {
     if let PacketType::MsgFragment(f) = packet_type {
         return f.fragment_index;
     }
-    0
+    0 // Should never happen
 }

@@ -1,43 +1,13 @@
 #![cfg(test)]
-use crate::drone::RustyDrone;
 use crate::testing_utils::data::new_test_fragment_packet;
 use crate::testing_utils::data::*;
-use crate::testing_utils::{test_initialization_with_value, DroneOptions};
-use crossbeam_channel::{unbounded, Receiver};
-use wg_2024::controller::{DroneCommand, DroneEvent};
+use crate::testing_utils::DroneOptions;
+
+use crate::drone::test::{simple_drone_with_exit, simple_drone_with_two_exit};
+use wg_2024::controller::DroneEvent;
 use wg_2024::network::NodeId;
 use wg_2024::packet::NackType::{Dropped, ErrorInRouting};
 use wg_2024::packet::Packet;
-
-fn simple_drone_with_exit(
-    id: NodeId,
-    pdr: f32,
-    exit: NodeId,
-) -> (DroneOptions, RustyDrone, Receiver<Packet>) {
-    let (options, mut drone) = test_initialization_with_value(id, pdr);
-
-    let (new_sender, new_receiver) = unbounded();
-    drone.handle_commands(DroneCommand::AddSender(exit, new_sender));
-
-    (options, drone, new_receiver)
-}
-
-fn simple_drone_with_two_exit(
-    id: NodeId,
-    pdr: f32,
-    exit1: NodeId,
-    exit2: NodeId,
-) -> (DroneOptions, RustyDrone, Receiver<Packet>, Receiver<Packet>) {
-    let (options, mut drone) = test_initialization_with_value(id, pdr);
-
-    let (new_sender1, new_receiver1) = unbounded();
-    drone.handle_commands(DroneCommand::AddSender(exit1, new_sender1));
-
-    let (new_sender2, new_receiver2) = unbounded();
-    drone.handle_commands(DroneCommand::AddSender(exit2, new_sender2));
-
-    (options, drone, new_receiver1, new_receiver2)
-}
 
 fn basic_single_hop_test(
     packet: Packet,

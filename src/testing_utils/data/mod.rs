@@ -1,5 +1,5 @@
 use wg_2024::network::{NodeId, SourceRoutingHeader};
-use wg_2024::packet::{Fragment, Nack, NackType, Packet};
+use wg_2024::packet::{FloodRequest, Fragment, Nack, NackType, NodeType, Packet};
 
 pub fn new_test_fragment_packet(routing_vector: &[NodeId], session_id: u64) -> Packet {
     Packet::new_fragment(
@@ -30,3 +30,24 @@ pub fn new_forwarded(packet: &Packet) -> Packet {
     packet.routing_header.increase_hop_index();
     packet
 }
+
+pub fn new_flood_request(session_id: u64, flood_id: u64, initiator_id: NodeId) -> Packet {
+    Packet::new_flood_request(
+        SourceRoutingHeader::new(vec!(), 0),
+        session_id,
+        FloodRequest::new(flood_id, initiator_id),
+    )
+}
+
+pub fn new_flood_request_with_path(session_id: u64, flood_id: u64, initiator_id: NodeId, path: &[(NodeId, NodeType)]) -> Packet {
+    Packet::new_flood_request(
+        SourceRoutingHeader::new(vec!(), 0),
+        session_id,
+        FloodRequest{
+            flood_id,
+            initiator_id,
+            path_trace: path.to_vec(),
+        },
+    )
+}          
+        
