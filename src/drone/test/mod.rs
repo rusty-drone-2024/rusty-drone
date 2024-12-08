@@ -1,15 +1,15 @@
 #![cfg(test)]
 
 mod drone_command;
-mod drone_packet;
 mod drone_flood;
+mod drone_packet;
 
+use crate::testing_utils::{test_initialization_with_value, DroneOptions};
+use crate::RustyDrone;
 use crossbeam_channel::{unbounded, Receiver};
 use wg_2024::controller::DroneCommand;
 use wg_2024::network::NodeId;
 use wg_2024::packet::Packet;
-use crate::RustyDrone;
-use crate::testing_utils::{test_initialization_with_value, DroneOptions};
 
 fn simple_drone_with_exit(
     id: NodeId,

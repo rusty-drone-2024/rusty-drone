@@ -33,21 +33,25 @@ pub fn new_forwarded(packet: &Packet) -> Packet {
 
 pub fn new_flood_request(session_id: u64, flood_id: u64, initiator_id: NodeId) -> Packet {
     Packet::new_flood_request(
-        SourceRoutingHeader::new(vec!(), 0),
+        SourceRoutingHeader::new(vec![], 0),
         session_id,
         FloodRequest::new(flood_id, initiator_id),
     )
 }
 
-pub fn new_flood_request_with_path(session_id: u64, flood_id: u64, initiator_id: NodeId, path: &[(NodeId, NodeType)]) -> Packet {
+pub fn new_flood_request_with_path(
+    session_id: u64,
+    flood_id: u64,
+    initiator_id: NodeId,
+    path: &[(NodeId, NodeType)],
+) -> Packet {
     Packet::new_flood_request(
-        SourceRoutingHeader::new(vec!(), 0),
+        SourceRoutingHeader::new(vec![], 0),
         session_id,
-        FloodRequest{
+        FloodRequest {
             flood_id,
             initiator_id,
             path_trace: path.to_vec(),
         },
     )
-}          
-        
+}

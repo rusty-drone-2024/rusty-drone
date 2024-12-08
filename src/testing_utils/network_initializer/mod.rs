@@ -112,11 +112,13 @@ impl Network {
         None
     }
 
-    pub(crate) fn send_to_dest_as_client(&self, node_id: NodeId, to: NodeId, packet: Packet) -> Option<()> {
-        let neighbour = self.nodes[node_id as usize]
-            .options
-            .packet_send
-            .get(&to);
+    pub(crate) fn send_to_dest_as_client(
+        &self,
+        node_id: NodeId,
+        to: NodeId,
+        packet: Packet,
+    ) -> Option<()> {
+        let neighbour = self.nodes[node_id as usize].options.packet_send.get(&to);
         if let Some(neighbour) = neighbour {
             return neighbour.send(packet).ok();
         }
