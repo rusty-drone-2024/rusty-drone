@@ -53,10 +53,12 @@ impl RustyDrone {
 }
 
 pub(super) fn get_fragment_index(packet_type: PacketType) -> u64 {
-    extract!(packet_type, PacketType::MsgFragment).unwrap().fragment_index
+    extract!(packet_type, PacketType::MsgFragment)
+        .unwrap()
+        .fragment_index
 }
 
-pub(super) fn new_flood_response(request: &FloodRequest) -> FloodResponse{
+pub(super) fn new_flood_response(request: &FloodRequest) -> FloodResponse {
     FloodResponse {
         flood_id: request.flood_id,
         path_trace: request.path_trace.clone(),

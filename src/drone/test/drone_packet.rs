@@ -65,8 +65,7 @@ fn test_drone_packet_forward_crash() {
     let packet = new_test_fragment_packet(&[10, 11, 12], 5);
     let expected_packet = new_test_nack(&[11, 10], ErrorInRouting(11), 5, 1);
 
-    let options =
-        basic_single_hop_test(packet.clone(), expected_packet.clone(), true, 0.0, 11, 10);
+    let options = basic_single_hop_test(packet.clone(), expected_packet.clone(), true, 0.0, 11, 10);
     options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
     options.assert_expect_drone_event_fail();
 }

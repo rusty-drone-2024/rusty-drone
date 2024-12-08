@@ -45,7 +45,8 @@ fn test_easiest_flood() {
     let flood = new_flood_request(5, 7, 0);
     net.send_to_dest_as_client(0, 1, flood).unwrap();
 
-    let expected = new_flood_request_with_path(5, 7, 0, &[(0, NodeType::Client), (1, NodeType::Drone)]);
+    let expected =
+        new_flood_request_with_path(5, 7, 0, &[(0, NodeType::Client), (1, NodeType::Drone)]);
     assert_eq!(expected, net.recv_as_client(2, TIMEOUT).unwrap());
     assert_eq!(expected, net.recv_as_client(3, TIMEOUT).unwrap());
 }

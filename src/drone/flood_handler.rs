@@ -21,7 +21,8 @@ impl RustyDrone {
 
     /// need to create flood response
     pub(super) fn respond_old_flood(&self, packet: Packet) -> Option<Packet> {
-        let mut flood_res = new_flood_response(extract!(packet.pack_type, PacketType::FloodRequest).unwrap());
+        let mut flood_res =
+            new_flood_response(extract!(packet.pack_type, PacketType::FloodRequest).unwrap());
 
         flood_res.path_trace.push((self.id, NodeType::Drone));
         let hops = flood_res
@@ -34,7 +35,7 @@ impl RustyDrone {
         Some(Packet::new_flood_response(
             SourceRoutingHeader { hop_index: 1, hops },
             packet.session_id,
-            flood_res
+            flood_res,
         ))
     }
 
