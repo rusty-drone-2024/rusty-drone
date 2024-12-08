@@ -104,24 +104,32 @@ impl Network {
         options.event_recv.clone()
     }
 
-    pub fn send_as_client(&self, node_id: NodeId, packet: Packet) {
-        let current = packet.routing_header.current_hop();
-        if let Some(current) = current {
-            let neighbour = self.nodes[node_id as usize]
-                .options
-                .packet_send
-                .get(&current);
-            if let Some(neighbour) = neighbour {
-                let _ = neighbour.send(packet);
-            }
+    pub fn send_as_client(&self, node_id: NodeId, packet: Packet) -> Option<()> {
+        let to = packet.routing_header.current_hop();
+        if let Some(to) = to {
+            return self.send_to_dest_as_client(node_id, to, packet);
         }
+        None
+    }
+
+    pub(crate) fn send_to_dest_as_client(
+        &self,
+        node_id: NodeId,
+        to: NodeId,
+        packet: Packet,
+    ) -> Option<()> {
+        let neighbour = self.nodes[node_id as usize].options.packet_send.get(&to);
+        if let Some(neighbour) = neighbour {
+            return neighbour.send(packet).ok();
+        }
+
+        None
     }
 
     pub fn recv_as_client(&self, node_id: NodeId, timeout: Duration) -> Option<Packet> {
-        return self
-            .get_drone_packet_remover_channel(node_id)
+        self.get_drone_packet_remover_channel(node_id)
             .recv_timeout(timeout)
-            .ok();
+            .ok()
     }
 
     /// Start some drone

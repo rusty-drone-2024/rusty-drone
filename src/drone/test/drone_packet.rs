@@ -1,159 +1,144 @@
 #![cfg(test)]
-use crate::drone::RustyDrone;
 use crate::testing_utils::data::new_test_fragment_packet;
-use crate::testing_utils::{test_initialization_with_value, DroneOptions};
-use crossbeam_channel::{unbounded, Receiver};
-use wg_2024::controller::{DroneCommand, DroneEvent};
-use wg_2024::network::{NodeId, SourceRoutingHeader};
-use wg_2024::packet::NackType::{Dropped, ErrorInRouting};
-use wg_2024::packet::{Nack, NackType, Packet, PacketType};
+use crate::testing_utils::data::*;
+use crate::testing_utils::DroneOptions;
 
-fn simple_drone_with_exit(
-    id: NodeId,
+use crate::drone::test::{simple_drone_with_exit, simple_drone_with_two_exit};
+use wg_2024::controller::DroneEvent;
+use wg_2024::network::NodeId;
+use wg_2024::packet::NackType::{Dropped, ErrorInRouting, UnexpectedRecipient};
+use wg_2024::packet::Packet;
+
+fn basic_single_hop_test(
+    packet: Packet,
+    expected_packet: Packet,
+    crashing: bool,
     pdr: f32,
+    node_id: NodeId,
     exit: NodeId,
-) -> (DroneOptions, RustyDrone, Receiver<Packet>) {
-    let (options, mut drone) = test_initialization_with_value(id, pdr);
+) -> DroneOptions {
+    let (options, mut drone, packet_exit) = simple_drone_with_exit(node_id, pdr, exit);
 
-    let (new_sender, new_receiver) = unbounded();
-    drone.handle_commands(DroneCommand::AddSender(exit, new_sender));
+    drone.handle_packet(packet, crashing);
+    assert_eq!(expected_packet, packet_exit.try_recv().unwrap());
 
-    (options, drone, new_receiver)
+    options
 }
 
-fn simple_drone_with_two_exit(
-    id: NodeId,
+fn basic_single_hop_test_fail(
+    packet: Packet,
+    crashing: bool,
     pdr: f32,
-    exit1: NodeId,
-    exit2: NodeId,
-) -> (DroneOptions, RustyDrone, Receiver<Packet>, Receiver<Packet>) {
-    let (options, mut drone) = test_initialization_with_value(id, pdr);
+    node_id: NodeId,
+    exit: NodeId,
+) -> DroneOptions {
+    let (options, mut drone, packet_exit) = simple_drone_with_exit(node_id, pdr, exit);
 
-    let (new_sender1, new_receiver1) = unbounded();
-    drone.handle_commands(DroneCommand::AddSender(exit1, new_sender1));
+    drone.handle_packet(packet, crashing);
+    assert!(packet_exit.try_recv().is_err());
 
-    let (new_sender2, new_receiver2) = unbounded();
-    drone.handle_commands(DroneCommand::AddSender(exit2, new_sender2));
-
-    (options, drone, new_receiver1, new_receiver2)
-}
-
-fn new_test_nack(
-    hops: &[NodeId],
-    nack_type: NackType,
-    session_id: u64,
-    fragment_index: u64,
-) -> Packet {
-    Packet::new_nack(
-        SourceRoutingHeader::new(hops.to_vec(), 1),
-        session_id,
-        Nack {
-            fragment_index,
-            nack_type,
-        },
-    )
+    options
 }
 
 #[test]
 fn test_drone_packet_forward() {
-    let (options, mut drone, packet_exit) = simple_drone_with_exit(11, 0.0, 12);
+    let packet = new_test_fragment_packet(&[10, 11, 12], 5);
+    let expected_packet = new_forwarded(&packet);
 
-    let mut packet = new_test_fragment_packet(&[10, 11, 12]);
-    drone.handle_packet(packet.clone(), false);
+    let options = basic_single_hop_test(packet, expected_packet.clone(), false, 0.0, 11, 12);
+    options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
+}
 
-    let forwarded_packet = packet_exit.try_recv().unwrap();
-    (&mut packet.routing_header).increase_hop_index();
-    assert_eq!(packet.clone(), forwarded_packet);
+#[test]
+fn test_drone_packet_forward_to_none() {
+    let packet = new_test_fragment_packet(&[10, 11, 12], 5);
+    let expected_packet = new_test_nack(&[11, 10], ErrorInRouting(12), 5, 1);
 
-    let event = options.event_recv.try_recv().unwrap();
-    assert_eq!(event, DroneEvent::PacketSent(packet));
+    let options =
+        basic_single_hop_test(packet.clone(), expected_packet.clone(), false, 0.0, 11, 10);
+    options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
+    options.assert_expect_drone_event_fail();
 }
 
 #[test]
 fn test_drone_packet_forward_crash() {
-    let (options, mut drone, packet_exit) = simple_drone_with_exit(11, 0.0, 10);
+    let packet = new_test_fragment_packet(&[10, 11, 12], 5);
+    let expected_packet = new_test_nack(&[11, 10], ErrorInRouting(11), 5, 1);
 
-    let packet = new_test_fragment_packet(&[10, 11, 12]);
-    drone.handle_packet(packet.clone(), true);
-
-    let nack_packet = packet_exit.try_recv().unwrap();
-    assert_eq!(
-        nack_packet.pack_type,
-        PacketType::Nack(Nack {
-            nack_type: ErrorInRouting(11),
-            fragment_index: 0
-        })
-    );
-
-    let event = options.event_recv.try_recv().unwrap();
-    assert!(matches!(event, DroneEvent::PacketSent(_)));
+    let options = basic_single_hop_test(packet.clone(), expected_packet.clone(), true, 0.0, 11, 10);
+    options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
+    options.assert_expect_drone_event_fail();
 }
 
 #[test]
 fn test_drone_packet_forward_nack() {
-    let (options, mut drone, packet_exit) = simple_drone_with_exit(11, 0.0, 12);
+    let packet = new_test_nack(&[10, 11, 12], Dropped, 5, 1);
+    let expected_packet = new_forwarded(&packet);
 
-    let mut nack = new_test_nack(&[10, 11, 12], Dropped, 5, 0);
-    drone.handle_packet(nack.clone(), false);
-
-    let forwarded_packet = packet_exit.try_recv().unwrap();
-    (&mut nack.routing_header).increase_hop_index();
-    assert_eq!(nack.clone(), forwarded_packet);
-
-    let event = options.event_recv.try_recv().unwrap();
-    assert_eq!(event, DroneEvent::PacketSent(nack));
+    let options =
+        basic_single_hop_test(packet.clone(), expected_packet.clone(), false, 0.0, 11, 12);
+    options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
+    options.assert_expect_drone_event_fail();
 }
 
 #[test]
 fn test_drone_packet_forward_nack_crashing() {
-    let (options, mut drone, packet_exit) = simple_drone_with_exit(11, 0.0, 12);
+    let packet = new_test_nack(&[10, 11, 12], Dropped, 5, 1);
+    let expected_packet = new_forwarded(&packet);
 
-    let mut nack = new_test_nack(&[10, 11, 12], Dropped, 5, 0);
-    drone.handle_packet(nack.clone(), true);
+    let options = basic_single_hop_test(packet.clone(), expected_packet.clone(), true, 0.0, 11, 12);
+    options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
+    options.assert_expect_drone_event_fail();
+}
 
-    let forwarded_packet = packet_exit.try_recv().unwrap();
-    (&mut nack.routing_header).increase_hop_index();
-    assert_eq!(nack.clone(), forwarded_packet);
+#[test]
+fn test_drone_packet_forward_nack_pdr_max() {
+    let packet = new_test_nack(&[10, 11, 12], Dropped, 5, 1);
+    let expected_packet = new_forwarded(&packet);
 
-    let event = options.event_recv.try_recv().unwrap();
-    assert_eq!(event, DroneEvent::PacketSent(nack));
+    let options =
+        basic_single_hop_test(packet.clone(), expected_packet.clone(), false, 1.0, 11, 12);
+    options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
+    options.assert_expect_drone_event_fail();
 }
 
 #[test]
 fn test_drone_packet_nack_to_nothing_shortcut() {
-    let (options, mut drone, packet_exit) = simple_drone_with_exit(11, 0.0, 12);
+    let packet = new_test_nack(&[10, 11, 12], Dropped, 5, 1);
 
-    let nack = new_test_nack(&[10, 11, 13], Dropped, 5, 0);
-    drone.handle_packet(nack.clone(), true);
-
-    assert!(packet_exit.try_recv().is_err());
-
-    let event = options.event_recv.try_recv().unwrap();
-    let mut nack_incr = nack.clone();
-    nack_incr.routing_header.increase_hop_index();
-    assert_eq!(event, DroneEvent::ControllerShortcut(nack_incr));
+    let options = basic_single_hop_test_fail(packet.clone(), false, 1.0, 11, 10);
+    options.assert_expect_drone_event(DroneEvent::ControllerShortcut(new_forwarded(&packet)));
+    options.assert_expect_drone_event_fail();
 }
 
 #[test]
 fn test_drone_packet_dropped() {
-    let (options, mut drone, packet_exit, _packet_exit) =
-        simple_drone_with_two_exit(11, 1.0, 10, 12);
+    let packet = new_test_fragment_packet(&[10, 11, 12], 5);
+    let expected = new_test_nack(&[11, 10], Dropped, 5, 1);
 
-    let packet = new_test_fragment_packet(&[10, 11, 12]);
+    let (options, mut drone, packet_exit, _) = simple_drone_with_two_exit(11, 1.0, 10, 12);
     drone.handle_packet(packet.clone(), false);
+    assert_eq!(expected, packet_exit.try_recv().unwrap());
 
-    let nack_packet = packet_exit.try_recv().unwrap();
-    assert_eq!(
-        nack_packet.pack_type,
-        PacketType::Nack(Nack {
-            nack_type: Dropped,
-            fragment_index: 0
-        })
-    );
+    options.assert_expect_drone_event(DroneEvent::PacketDropped(packet));
+    options.assert_expect_drone_event(DroneEvent::PacketSent(expected));
+    options.assert_expect_drone_event_fail();
+}
 
-    let event = options.event_recv.try_recv().unwrap();
-    assert!(matches!(event, DroneEvent::PacketDropped(_)));
+#[test]
+fn test_drone_packet_error_in_routing() {
+    let packet = new_test_fragment_packet(&[10, 11, 12], 5);
+    let expected_packet = new_test_nack(&[11, 10], ErrorInRouting(12), 5, 1);
 
-    let event = options.event_recv.try_recv().unwrap();
-    assert!(matches!(event, DroneEvent::PacketSent(_)));
+    let options = basic_single_hop_test(packet, expected_packet.clone(), false, 0.0, 11, 10);
+    options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
+}
+
+#[test]
+fn test_drone_packet_unexpected_recepient() {
+    let packet = new_test_fragment_packet(&[10, 100, 12], 5);
+    let expected_packet = new_test_nack(&[11, 10], UnexpectedRecipient(11), 5, 1);
+
+    let options = basic_single_hop_test(packet, expected_packet.clone(), false, 0.0, 11, 10);
+    options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
 }
