@@ -1,6 +1,8 @@
+use crate::drone::utils::new_flood_response;
 use crate::drone::RustyDrone;
+use crate::{extract, extract_mut};
 use wg_2024::network::{NodeId, SourceRoutingHeader};
-use wg_2024::packet::{FloodResponse, NodeType, Packet, PacketType};
+use wg_2024::packet::{NodeType, Packet, PacketType};
 
 impl RustyDrone {
     pub(super) fn handle_flood_request(&self, packet: Packet, already_rec: bool) {
@@ -19,16 +21,10 @@ impl RustyDrone {
 
     /// need to create flood response
     pub(super) fn respond_old_flood(&self, packet: Packet) -> Option<Packet> {
-        let mut flood;
-        if let PacketType::FloodRequest(ref flood_ref) = packet.pack_type {
-            flood = flood_ref.clone();
-        } else {
-            // Should not happen (i know it is SHIT)
-            return None;
-        }
+        let mut flood_res = new_flood_response(extract!(packet.pack_type, PacketType::FloodRequest).unwrap());
 
-        flood.path_trace.push((self.id, NodeType::Drone));
-        let hops = flood
+        flood_res.path_trace.push((self.id, NodeType::Drone));
+        let hops = flood_res
             .path_trace
             .iter()
             .map(|(node_id, _)| *node_id)
@@ -38,20 +34,16 @@ impl RustyDrone {
         Some(Packet::new_flood_response(
             SourceRoutingHeader { hop_index: 1, hops },
             packet.session_id,
-            FloodResponse {
-                flood_id: flood.flood_id,
-                path_trace: flood.path_trace,
-            },
+            flood_res
         ))
     }
 
     /// need to update flood request
     pub(super) fn respond_new_flood(&self, mut packet: Packet) -> Option<(Packet, Option<NodeId>)> {
-        if let PacketType::FloodRequest(ref mut flood) = packet.pack_type {
-            let prev_hop = flood.path_trace.last().map(|x| x.0);
-            flood.path_trace.push((self.id, NodeType::Drone));
-            return Some((packet, prev_hop));
-        }
-        None // Should not happen
+        let flood = extract_mut!(packet.pack_type, PacketType::FloodRequest).unwrap();
+
+        let prev_hop = flood.path_trace.last().map(|x| x.0);
+        flood.path_trace.push((self.id, NodeType::Drone));
+        Some((packet, prev_hop))
     }
 }

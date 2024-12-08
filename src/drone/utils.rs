@@ -1,7 +1,8 @@
 use crate::drone::RustyDrone;
+use crate::extract;
 use rand::Rng;
 use wg_2024::network::NodeId;
-use wg_2024::packet::{Nack, NackType, Packet, PacketType};
+use wg_2024::packet::{FloodRequest, FloodResponse, Nack, NackType, Packet, PacketType};
 
 impl RustyDrone {
     pub(super) fn should_drop(&self) -> bool {
@@ -46,17 +47,18 @@ impl RustyDrone {
         initiator_id: NodeId,
         _session_id: u64,
     ) -> bool {
-        // Should keep in mind all of them but will only use flood_id as per protol
-        // this is broken and wont work
-        // so we will see what to do
         // TODO talk with WG
         !self.received_floods.insert((flood_id, initiator_id))
     }
 }
 
 pub(super) fn get_fragment_index(packet_type: PacketType) -> u64 {
-    if let PacketType::MsgFragment(f) = packet_type {
-        return f.fragment_index;
+    extract!(packet_type, PacketType::MsgFragment).unwrap().fragment_index
+}
+
+pub(super) fn new_flood_response(request: &FloodRequest) -> FloodResponse{
+    FloodResponse {
+        flood_id: request.flood_id,
+        path_trace: request.path_trace.clone(),
     }
-    0 // Should never happen
 }

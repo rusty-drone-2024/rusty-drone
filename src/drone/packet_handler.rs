@@ -36,7 +36,7 @@ impl RustyDrone {
 
         // If unexpected packets
         if routing.current_hop() != Some(self.id) {
-            // the protocol say so but it is just dumb
+            packet.routing_header.hops[packet.routing_header.hop_index] = self.id;
             return self.create_nack(packet, UnexpectedRecipient(self.id), droppable, true);
         }
 

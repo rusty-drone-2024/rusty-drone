@@ -6,7 +6,7 @@ use crate::testing_utils::DroneOptions;
 use crate::drone::test::{simple_drone_with_exit, simple_drone_with_two_exit};
 use wg_2024::controller::DroneEvent;
 use wg_2024::network::NodeId;
-use wg_2024::packet::NackType::{Dropped, ErrorInRouting};
+use wg_2024::packet::NackType::{Dropped, ErrorInRouting, UnexpectedRecipient};
 use wg_2024::packet::Packet;
 
 fn basic_single_hop_test(
@@ -50,12 +50,23 @@ fn test_drone_packet_forward() {
 }
 
 #[test]
-fn test_drone_packet_forward_crash() {
+fn test_drone_packet_forward_to_none() {
     let packet = new_test_fragment_packet(&[10, 11, 12], 5);
     let expected_packet = new_test_nack(&[11, 10], ErrorInRouting(12), 5, 1);
 
     let options =
         basic_single_hop_test(packet.clone(), expected_packet.clone(), false, 0.0, 11, 10);
+    options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
+    options.assert_expect_drone_event_fail();
+}
+
+#[test]
+fn test_drone_packet_forward_crash() {
+    let packet = new_test_fragment_packet(&[10, 11, 12], 5);
+    let expected_packet = new_test_nack(&[11, 10], ErrorInRouting(11), 5, 1);
+
+    let options =
+        basic_single_hop_test(packet.clone(), expected_packet.clone(), true, 0.0, 11, 10);
     options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
     options.assert_expect_drone_event_fail();
 }
@@ -119,6 +130,15 @@ fn test_drone_packet_dropped() {
 fn test_drone_packet_error_in_routing() {
     let packet = new_test_fragment_packet(&[10, 11, 12], 5);
     let expected_packet = new_test_nack(&[11, 10], ErrorInRouting(12), 5, 1);
+
+    let options = basic_single_hop_test(packet, expected_packet.clone(), false, 0.0, 11, 10);
+    options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));
+}
+
+#[test]
+fn test_drone_packet_unexpected_recepient() {
+    let packet = new_test_fragment_packet(&[10, 100, 12], 5);
+    let expected_packet = new_test_nack(&[11, 10], UnexpectedRecipient(11), 5, 1);
 
     let options = basic_single_hop_test(packet, expected_packet.clone(), false, 0.0, 11, 10);
     options.assert_expect_drone_event(DroneEvent::PacketSent(expected_packet));

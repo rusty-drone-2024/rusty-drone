@@ -36,4 +36,3 @@ fn test_drone_flood_res() {
     options.assert_expect_drone_event(DroneEvent::PacketSent(expected));
     options.assert_expect_drone_event_fail();
 }
-
