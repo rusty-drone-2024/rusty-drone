@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 use wg_2024::controller::{DroneCommand, DroneEvent};
 use wg_2024::drone::Drone;
 use wg_2024::network::NodeId;
-use wg_2024::packet::Packet;
+use wg_2024::packet::{Packet, PacketType};
 
 pub struct RustyDrone {
     id: NodeId,
@@ -47,23 +47,34 @@ impl Drone for RustyDrone {
         while !crashing {
             select_biased! {
                 recv(self.controller_recv) -> res => {
-                    if let Ok(ref command) = res{
-                        crashing = self.handle_commands(command);
-                    }
+                    crashing = self.handle_commands(res.as_ref().unwrap());
                 },
                 recv(self.packet_recv) -> res => {
-                    if let Ok(ref packet) = res{
-                        println!("Drone {} --received--> {}", self.id, packet);
-                        self.handle_packet(packet, false);
-                        println!("Drone {} --sent-->", self.id)
-                    }
+                    self.handle_packet(res.as_ref().unwrap(), false);
                 },
             }
         }
 
         // crashing
-        while let Ok(ref packet) = self.packet_recv.recv() {
+        while let Ok(ref mut packet) = self.packet_recv.recv() {
             self.handle_packet(packet, true);
+        }
+    }
+}
+
+impl RustyDrone{
+    /// return the response to be sent
+    pub fn handle_packet(&mut self, packet: &Packet, crashing: bool) {
+        // Do custom handling for floods
+        if let PacketType::FloodRequest(ref flood) = packet.pack_type {
+            if !crashing {
+                self.handle_flood_request(packet.session_id, flood);
+            }
+        } else {
+            let res = self.respond_normal_types(packet, crashing);
+            if let Some(ref response_packet) = res {
+                self.send_packet(response_packet);
+            }
         }
     }
 }

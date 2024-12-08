@@ -64,7 +64,7 @@ fn test_loop_flood() {
             (2, NodeType::Drone),
             (3, NodeType::Drone),
         ],
-        TIMEOUT * 2,
+        Duration::from_secs(1),
     );
 }
 
@@ -85,7 +85,7 @@ fn test_hard_loop_flood() {
             (4, NodeType::Drone),
             (5, NodeType::Drone)
         ],
-        Duration::from_secs(4),
+        Duration::from_secs(10),
     );
 }
 

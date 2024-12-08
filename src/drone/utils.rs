@@ -1,7 +1,6 @@
 use crate::drone::RustyDrone;
 use crate::extract;
 use rand::Rng;
-use wg_2024::network::NodeId;
 use wg_2024::packet::{FloodRequest, FloodResponse, Nack, NackType, Packet, PacketType};
 
 impl RustyDrone {
@@ -18,7 +17,7 @@ impl RustyDrone {
         is_shortcuttable: bool,
     ) -> Option<Packet> {
         let mut packet = packet.clone();
-        
+
         if !droppable {
             if is_shortcuttable {
                 packet.routing_header.increase_hop_index();
@@ -45,11 +44,10 @@ impl RustyDrone {
 
     pub(super) fn already_received_flood(
         &mut self,
-        flood_id: u64,
-        initiator_id: NodeId,
+        flood: &FloodRequest
     ) -> bool {
         // TODO talk with WG
-        !self.received_floods.insert((flood_id, initiator_id))
+        !self.received_floods.insert((flood.flood_id, flood.initiator_id))
     }
 }
 

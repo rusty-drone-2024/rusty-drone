@@ -5,25 +5,6 @@ use wg_2024::packet::{Packet, PacketType};
 
 // Command/packets handling part
 impl RustyDrone {
-    /// return the response to be sent
-    pub(super) fn handle_packet(&mut self, packet: &Packet, crashing: bool) {
-        // Do custom handling for floods
-        if let PacketType::FloodRequest(ref flood) = packet.pack_type {
-            if !crashing {
-                let already_rec = self.already_received_flood(
-                    flood.flood_id,
-                    flood.initiator_id,
-                );
-                self.handle_flood_request(packet, already_rec);
-            }
-        } else {
-            let res = self.respond_normal_types(packet, crashing);
-            if let Some(ref response_packet) = res {
-                self.send_packet(response_packet);
-            }
-        }
-    }
-
     /// Return wheter it should crash or not
     pub(super) fn respond_normal_types(
         &self,
