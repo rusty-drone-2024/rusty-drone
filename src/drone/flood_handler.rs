@@ -21,16 +21,20 @@ impl RustyDrone {
 
     /// need to create flood response
     pub(super) fn respond_old_flood(&self, packet: Packet) -> Option<Packet> {
-        let mut flood_res =
-            new_flood_response(extract!(packet.pack_type, PacketType::FloodRequest).unwrap());
+        let flood = extract!(packet.pack_type, PacketType::FloodRequest).unwrap();
+        let mut flood_res = new_flood_response(&flood);
 
         flood_res.path_trace.push((self.id, NodeType::Drone));
-        let hops = flood_res
+        let mut hops = flood_res
             .path_trace
             .iter()
             .map(|(node_id, _)| *node_id)
             .rev()
             .collect::<Vec<_>>();
+
+        if hops.last() != Some(&flood.initiator_id) {
+            hops.push(flood.initiator_id);
+        }
 
         Some(Packet::new_flood_response(
             SourceRoutingHeader { hop_index: 1, hops },
@@ -40,10 +44,14 @@ impl RustyDrone {
     }
 
     /// need to update flood request
-    pub(super) fn respond_new_flood(&self, mut packet: Packet) -> Option<(Packet, Option<NodeId>)> {
+    pub(super) fn respond_new_flood(&self, mut packet: Packet) -> Option<(Packet, NodeId)> {
         let flood = extract_mut!(packet.pack_type, PacketType::FloodRequest).unwrap();
 
-        let prev_hop = flood.path_trace.last().map(|x| x.0);
+        let prev_hop = flood
+            .path_trace
+            .last()
+            .map(|x| x.0)
+            .unwrap_or(flood.initiator_id);
         flood.path_trace.push((self.id, NodeType::Drone));
         Some((packet, prev_hop))
     }

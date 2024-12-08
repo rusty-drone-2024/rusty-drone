@@ -31,7 +31,12 @@ pub fn new_forwarded(packet: &Packet) -> Packet {
     packet
 }
 
-pub fn new_flood_request(session_id: u64, flood_id: u64, initiator_id: NodeId) -> Packet {
+pub fn new_flood_request(
+    session_id: u64,
+    flood_id: u64,
+    initiator_id: NodeId,
+    include_itself: bool,
+) -> Packet {
     Packet::new_flood_request(
         SourceRoutingHeader::new(vec![], 0),
         session_id,
@@ -39,7 +44,11 @@ pub fn new_flood_request(session_id: u64, flood_id: u64, initiator_id: NodeId) -
             flood_id,
             initiator_id,
             // Stupid assumption for testing
-            path_trace: vec![(initiator_id, NodeType::Client)],
+            path_trace: if include_itself {
+                vec![(initiator_id, NodeType::Client)]
+            } else {
+                vec![]
+            },
         },
     )
 }
