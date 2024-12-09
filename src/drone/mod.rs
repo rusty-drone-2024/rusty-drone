@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 use wg_2024::controller::{DroneCommand, DroneEvent};
 use wg_2024::drone::Drone;
 use wg_2024::network::NodeId;
-use wg_2024::packet::Packet;
+use wg_2024::packet::{Packet, PacketType};
 
 pub struct RustyDrone {
     id: NodeId,
@@ -47,21 +47,33 @@ impl Drone for RustyDrone {
         while !crashing {
             select_biased! {
                 recv(self.controller_recv) -> res => {
-                    if let Ok(command) = res{
-                        crashing = self.handle_commands(command)
+                    if let Ok(ref packet) = res{
+                        crashing = self.handle_commands(packet);
                     }
                 },
                 recv(self.packet_recv) -> res => {
-                    if let Ok(packet) = res{
-                        self.handle_packet(packet, false)
+                    if let Ok(ref packet) = res{
+                        self.handle_packet(packet, false);
                     }
                 },
             }
         }
 
         // crashing
-        while let Ok(packet) = self.packet_recv.recv() {
+        while let Ok(ref packet) = self.packet_recv.recv() {
             self.handle_packet(packet, true);
+        }
+    }
+}
+
+impl RustyDrone {
+    pub fn handle_packet(&mut self, packet: &Packet, crashing: bool) {
+        if let PacketType::FloodRequest(ref flood) = packet.pack_type {
+            if !crashing {
+                self.respond_flood_request(packet.session_id, flood);
+            }
+        } else {
+            self.respond_normal(packet, crashing);
         }
     }
 }

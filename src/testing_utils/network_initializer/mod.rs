@@ -2,7 +2,7 @@
 
 use crate::drone::RustyDrone;
 use crate::testing_utils::DroneOptions;
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use std::thread;
 use std::time::Duration;
 use wg_2024::controller::{DroneCommand, DroneEvent};
@@ -11,6 +11,7 @@ use wg_2024::network::NodeId;
 use wg_2024::packet::Packet;
 
 pub struct Network {
+    simulation_controller_rcv: Receiver<DroneEvent>,
     nodes: Vec<NetworkDrone>,
 }
 
@@ -34,7 +35,12 @@ impl Network {
     /// With the given connections
     /// Duplicated connection are ignored and the graph is not directional
     fn new(amount: usize, connections: &[(NodeId, NodeId)], client: &[NodeId]) -> Self {
-        let mut options = (0..amount).map(|_| DroneOptions::new()).collect::<Vec<_>>();
+        let (event_send, simulation_controller_rcv) = unbounded::<DroneEvent>();
+        let mut options = (0..amount)
+            .map(|_| {
+                DroneOptions::new_with_event(event_send.clone(), simulation_controller_rcv.clone())
+            })
+            .collect::<Vec<_>>();
 
         for (start, end) in connections {
             let start_input = options[*start as usize].packet_drone_in.clone();
@@ -65,7 +71,10 @@ impl Network {
             })
             .collect();
 
-        Self { nodes }
+        Self {
+            nodes,
+            simulation_controller_rcv,
+        }
     }
 
     pub fn add_connections(&mut self, connections: &[(NodeId, NodeId)]) {
@@ -94,14 +103,14 @@ impl Network {
         options.packet_recv.clone()
     }
 
-    fn get_drone_command_channel(&self, node_id: NodeId) -> Sender<DroneCommand> {
-        let options = &self.nodes[node_id as usize].options;
-        options.command_send.clone()
+    pub fn try_recv_as_simulation_controller(&self) -> Option<DroneEvent> {
+        let options = &self.nodes.first().unwrap().options;
+        options.event_recv.try_recv().ok()
     }
 
-    fn get_drone_event_channel(&self, node_id: NodeId) -> Receiver<DroneEvent> {
-        let options = &self.nodes[node_id as usize].options;
-        options.event_recv.clone()
+    pub fn recv_as_simulation_controller(&self, timeout: Duration) -> Option<DroneEvent> {
+        let options = &self.nodes.first().unwrap().options;
+        options.event_recv.recv_timeout(timeout).ok()
     }
 
     pub fn send_as_client(&self, node_id: NodeId, packet: Packet) -> Option<()> {
@@ -142,5 +151,11 @@ impl Network {
                 });
             }
         }
+    }
+
+    /// Start some drone as fake client
+    /// They only respond to FloodRequest
+    fn start_fake_clients_async(&mut self, fake_clients: &[NodeId]) {
+        todo!("{:?}", fake_clients)
     }
 }

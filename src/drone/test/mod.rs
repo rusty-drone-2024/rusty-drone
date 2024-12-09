@@ -19,7 +19,7 @@ fn simple_drone_with_exit(
     let (options, mut drone) = test_initialization_with_value(id, pdr);
 
     let (new_sender, new_receiver) = unbounded();
-    drone.handle_commands(DroneCommand::AddSender(exit, new_sender));
+    drone.handle_commands(&DroneCommand::AddSender(exit, new_sender));
 
     (options, drone, new_receiver)
 }
@@ -33,10 +33,10 @@ fn simple_drone_with_two_exit(
     let (options, mut drone) = test_initialization_with_value(id, pdr);
 
     let (new_sender1, new_receiver1) = unbounded();
-    drone.handle_commands(DroneCommand::AddSender(exit1, new_sender1));
+    drone.handle_commands(&DroneCommand::AddSender(exit1, new_sender1));
 
     let (new_sender2, new_receiver2) = unbounded();
-    drone.handle_commands(DroneCommand::AddSender(exit2, new_sender2));
+    drone.handle_commands(&DroneCommand::AddSender(exit2, new_sender2));
 
     (options, drone, new_receiver1, new_receiver2)
 }
