@@ -36,12 +36,7 @@ impl Network {
     fn new(amount: usize, connections: &[(NodeId, NodeId)], client: &[NodeId]) -> Self {
         let (sc_event_send, sc_event_rcv) = unbounded::<DroneEvent>();
         let mut options = (0..amount)
-            .map(|_| {
-                DroneOptions::new_with_sc(
-                    sc_event_send.clone(),
-                    sc_event_rcv.clone(),
-                )
-            })
+            .map(|_| DroneOptions::new_with_sc(sc_event_send.clone(), sc_event_rcv.clone()))
             .collect::<Vec<_>>();
 
         for (start, end) in connections {
@@ -109,9 +104,13 @@ impl Network {
         let options = &self.nodes.first().unwrap().options;
         options.event_recv.clone()
     }
-    
-    pub fn send_as_simulation_controller_to(&self, node_id:NodeId, command: DroneCommand) {
-        self.nodes[node_id as usize].options.command_send.send(command).unwrap()
+
+    pub fn send_as_simulation_controller_to(&self, node_id: NodeId, command: DroneCommand) {
+        self.nodes[node_id as usize]
+            .options
+            .command_send
+            .send(command)
+            .unwrap()
     }
 
     pub fn send_as_client(&self, node_id: NodeId, packet: Packet) -> Option<()> {

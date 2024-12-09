@@ -8,7 +8,7 @@ impl RustyDrone {
     pub fn send_normal_packet(&self, packet: &Packet) {
         // Intentional unwrap
         let next_hop = packet.routing_header.current_hop().unwrap();
-        
+
         if let Some(channel) = self.packet_send.get(&next_hop) {
             let _ = channel.send(packet.clone());
             let _ = self

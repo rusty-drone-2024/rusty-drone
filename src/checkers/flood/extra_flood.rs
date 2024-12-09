@@ -34,7 +34,7 @@ fn test_matrix_loop_flood() {
             (16, 17),
             (17, 18),
         ],
-        TIMEOUT
+        TIMEOUT,
     );
 }
 
@@ -55,10 +55,9 @@ fn test_star_loop_flood() {
             (9, 2),
             (10, 3),
         ],
-        TIMEOUT
+        TIMEOUT,
     );
 }
-
 
 #[test]
 fn test_butterfly_loop_flood() {
@@ -66,29 +65,23 @@ fn test_butterfly_loop_flood() {
         11,
         &[
             (0, 1),
-
             (1, 5),
             (1, 6),
             (2, 5),
             (2, 6),
-
             (3, 7),
             (3, 8),
             (4, 7),
             (4, 8),
-
             (6, 10),
             (7, 9),
             (9, 10),
-
             (5, 9),
-            (8, 10)
-
+            (8, 10),
         ],
         TIMEOUT,
     );
 }
-
 
 #[test]
 fn test_tree_loop_flood() {
@@ -96,17 +89,14 @@ fn test_tree_loop_flood() {
         11,
         &[
             (0, 1),
-
             (1, 2),
             (1, 3),
-
             (2, 4),
             (2, 5),
             (2, 6),
             (3, 4),
             (3, 5),
             (3, 6),
-
             (4, 7),
             (4, 8),
             (4, 9),
@@ -120,7 +110,6 @@ fn test_tree_loop_flood() {
             (6, 9),
             (6, 10),
         ],
-        TIMEOUT
+        TIMEOUT,
     );
 }
-

@@ -38,10 +38,10 @@ fn test_drone_packet_3_hop_crash() {
 
     net.send_as_simulation_controller_to(1, DroneCommand::Crash);
     let packet = new_test_fragment_packet(&[0, 1, 2, 3, 4], 5);
-    
+
     net.send_as_client(0, packet.clone()).unwrap();
     let response = net.recv_as_client(0, TIMEOUT).unwrap();
-    
+
     let expected = new_test_nack(&[1, 0], NackType::ErrorInRouting(1), 5, 1);
     assert_eq!(expected, response);
 }

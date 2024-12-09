@@ -20,11 +20,7 @@ fn test_easiest_flood() {
 
 #[test]
 fn test_loop_flood() {
-    assert_topology_of_drones(
-        4,
-        &[(0, 1), (1, 2), (1, 3), (2, 3)],
-        TIMEOUT,
-    );
+    assert_topology_of_drones(4, &[(0, 1), (1, 2), (1, 3), (2, 3)], TIMEOUT);
 }
 
 #[test]
@@ -44,6 +40,6 @@ fn test_hard_loop_flood() {
             (5, 3),
             (5, 4),
         ],
-        TIMEOUT
+        TIMEOUT,
     );
 }
