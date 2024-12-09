@@ -1,42 +1,44 @@
-use crate::drone::utils::new_flood_response;
 use crate::drone::RustyDrone;
 use wg_2024::network::SourceRoutingHeader;
-use wg_2024::packet::{FloodRequest, NodeType, Packet};
+use wg_2024::packet::{FloodRequest, FloodResponse, NodeType, Packet};
 
 impl RustyDrone {
-    pub(super) fn handle_flood_request(&mut self, session_id: u64, flood: &FloodRequest) {
+    #[inline(always)]
+    pub(super) fn respond_flood_request(&mut self, session_id: u64, flood: &FloodRequest) {
         if self.already_received_flood(flood) {
-            self.respond_old_flood(session_id, flood);
+            self.respond_old(session_id, flood);
         } else {
-            self.respond_new_flood(session_id, flood);
+            self.respond_new(session_id, flood);
         }
     }
 
-    /// need to create flood response
-    pub(super) fn respond_old_flood(&self, session_id: u64, flood: &FloodRequest) {
-        let mut flood_res = new_flood_response(flood);
+    #[inline(always)]
+    fn respond_old(&self, session_id: u64, request: &FloodRequest) {
+        let mut new_path = request.path_trace.clone();
+        new_path.push((self.id, NodeType::Drone));
 
-        flood_res.path_trace.push((self.id, NodeType::Drone));
-        let mut hops = flood_res
-            .path_trace
+        let mut hops = new_path
             .iter()
             .map(|(node_id, _)| *node_id)
             .rev()
             .collect::<Vec<_>>();
 
-        if hops.last() != Some(&flood.initiator_id) {
-            hops.push(flood.initiator_id);
+        if hops.last() != Some(&request.initiator_id) {
+            hops.push(request.initiator_id);
         }
 
-        self.send_packet(&Packet::new_flood_response(
+        self.send_flood_packet(&Packet::new_flood_response(
             SourceRoutingHeader { hop_index: 1, hops },
             session_id,
-            flood_res,
+            FloodResponse {
+                flood_id: request.flood_id,
+                path_trace: new_path,
+            },
         ));
     }
 
-    /// need to update flood request
-    pub(super) fn respond_new_flood<'a>(&self, session_id: u64, flood: &FloodRequest) {
+    #[inline(always)]
+    fn respond_new(&self, session_id: u64, flood: &FloodRequest) {
         let prev_hop = flood
             .path_trace
             .last()

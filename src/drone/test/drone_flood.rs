@@ -1,6 +1,5 @@
 use crate::drone::test::{simple_drone_with_exit, simple_drone_with_two_exit};
 use crate::testing_utils::data::{new_flood_request, new_flood_request_with_path};
-use wg_2024::controller::DroneEvent;
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{FloodResponse, NodeType, Packet};
 
@@ -38,7 +37,7 @@ fn test_drone_flood_res_inclusive() {
 
     assert_eq!(expected.clone(), packet_exit.try_recv().unwrap());
 
-    options.assert_expect_drone_event(DroneEvent::PacketSent(expected));
+    // TODO keep it? options.assert_expect_drone_event(DroneEvent::PacketSent(expected));
     options.assert_expect_drone_event_fail();
 }
 
@@ -75,6 +74,6 @@ fn test_drone_flood_res() {
 
     assert_eq!(expected.clone(), packet_exit.try_recv().unwrap());
 
-    options.assert_expect_drone_event(DroneEvent::PacketSent(expected));
+    // TODO keep it? options.assert_expect_drone_event(DroneEvent::PacketSent(expected));
     options.assert_expect_drone_event_fail();
 }

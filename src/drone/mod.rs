@@ -47,34 +47,33 @@ impl Drone for RustyDrone {
         while !crashing {
             select_biased! {
                 recv(self.controller_recv) -> res => {
-                    crashing = self.handle_commands(res.as_ref().unwrap());
+                    if let Ok(ref packet) = res{
+                        crashing = self.handle_commands(packet);
+                    }
                 },
                 recv(self.packet_recv) -> res => {
-                    self.handle_packet(res.as_ref().unwrap(), false);
+                    if let Ok(ref packet) = res{
+                        self.handle_packet(packet, false);
+                    }
                 },
             }
         }
 
         // crashing
-        while let Ok(ref mut packet) = self.packet_recv.recv() {
+        while let Ok(ref packet) = self.packet_recv.recv() {
             self.handle_packet(packet, true);
         }
     }
 }
 
 impl RustyDrone{
-    /// return the response to be sent
     pub fn handle_packet(&mut self, packet: &Packet, crashing: bool) {
-        // Do custom handling for floods
         if let PacketType::FloodRequest(ref flood) = packet.pack_type {
             if !crashing {
-                self.handle_flood_request(packet.session_id, flood);
+                self.respond_flood_request(packet.session_id, flood);
             }
         } else {
-            let res = self.respond_normal_types(packet, crashing);
-            if let Some(ref response_packet) = res {
-                self.send_packet(response_packet);
-            }
+            self.respond_normal(packet, crashing);
         }
     }
 }

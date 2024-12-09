@@ -1,14 +1,16 @@
 use crate::drone::RustyDrone;
 use crate::extract;
 use rand::Rng;
-use wg_2024::packet::{FloodRequest, FloodResponse, Nack, NackType, Packet, PacketType};
+use wg_2024::packet::{FloodRequest, Nack, NackType, Packet, PacketType};
 
 impl RustyDrone {
+    #[inline(always)]
     pub(super) fn should_drop(&self) -> bool {
         let mut rng = rand::thread_rng();
         rng.gen_range(0.0..1.0) < self.pdr
     }
 
+    #[inline(always)]
     pub(super) fn create_nack(
         &self,
         packet: &Packet,
@@ -42,6 +44,7 @@ impl RustyDrone {
         ))
     }
 
+    #[inline(always)]
     pub(super) fn already_received_flood(
         &mut self,
         flood: &FloodRequest
@@ -51,15 +54,9 @@ impl RustyDrone {
     }
 }
 
-pub(super) fn get_fragment_index(packet_type: &PacketType) -> u64 {
+#[inline(always)]
+fn get_fragment_index(packet_type: &PacketType) -> u64 {
     extract!(packet_type, PacketType::MsgFragment)
         .unwrap()
         .fragment_index
-}
-
-pub(super) fn new_flood_response(request: &FloodRequest) -> FloodResponse {
-    FloodResponse {
-        flood_id: request.flood_id,
-        path_trace: request.path_trace.clone(),
-    }
 }

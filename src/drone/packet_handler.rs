@@ -5,8 +5,19 @@ use wg_2024::packet::{Packet, PacketType};
 
 // Command/packets handling part
 impl RustyDrone {
+    pub(super) fn respond_normal(
+        &self,
+        packet: &Packet,
+        crashing: bool,
+    ){
+        let res = self.respond_normal_int(packet, crashing);
+        if let Some(ref response_packet) = res {
+            self.send_normal_packet(response_packet);
+        }
+    }
+    
     /// Return wheter it should crash or not
-    pub(super) fn respond_normal_types(
+    fn respond_normal_int(
         &self,
         packet: &Packet,
         crashing: bool,
