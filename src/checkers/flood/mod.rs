@@ -1,4 +1,5 @@
 mod normal_flood;
+mod extra_flood;
 
 use crate::testing_utils::Network;
 use std::collections::HashMap;

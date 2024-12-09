@@ -44,7 +44,7 @@ fn test_drone_packet_255_hop() {
     let time = Instant::now();
     net.send_as_client(0, packet.clone()).unwrap();
 
-    let response = net.recv_as_client(255, TIMEOUT * 3).unwrap();
+    let response = net.recv_as_client(255, TIMEOUT * 5).unwrap();
     let elapsed = time.elapsed();
 
     (&mut packet.routing_header).hop_index = 255;

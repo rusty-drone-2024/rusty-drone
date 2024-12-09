@@ -17,15 +17,6 @@ impl RustyDrone {
     }
 
     #[inline(always)]
-    pub fn send_flood_packet(&self, packet: &Packet) {
-        if let Some(next_hop) = packet.routing_header.current_hop() {
-            if let Some(channel) = self.packet_send.get(&next_hop) {
-                let _ = channel.send(packet.clone());
-            }
-        }
-    }
-
-    #[inline(always)]
     pub(super) fn use_shortcut(&self, packet: &Packet) {
         let _ = self
             .controller_send
