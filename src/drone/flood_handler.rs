@@ -27,7 +27,7 @@ impl RustyDrone {
             hops.push(request.initiator_id);
         }
 
-        self.send_flood_packet(&Packet::new_flood_response(
+        self.send_normal_packet(&Packet::new_flood_response(
             SourceRoutingHeader { hop_index: 1, hops },
             session_id,
             FloodResponse {

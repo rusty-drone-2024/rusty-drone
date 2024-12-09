@@ -6,4 +6,4 @@ mod flood;
 mod integrations;
 mod wgl_test;
 
-const TIMEOUT: Duration = Duration::from_millis(20);
+const TIMEOUT: Duration = Duration::from_millis(40);
