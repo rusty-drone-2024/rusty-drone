@@ -34,6 +34,21 @@ impl DroneOptions {
         }
     }
 
+    pub fn new_with_event(controller_send: Sender<DroneEvent>, event_recv: Receiver<DroneEvent>) -> Self {
+        let (command_send, controller_recv) = unbounded::<DroneCommand>();
+        let (packet_drone_in, packet_recv) = unbounded::<Packet>();
+        let packet_send = HashMap::<NodeId, Sender<Packet>>::new();
+        Self {
+            controller_send,
+            controller_recv,
+            packet_recv,
+            packet_send,
+            packet_drone_in,
+            command_send,
+            event_recv,
+        }
+    }
+
     pub fn create_drone(&self, id: NodeId, pdr: f32) -> RustyDrone {
         RustyDrone::new(
             id,
