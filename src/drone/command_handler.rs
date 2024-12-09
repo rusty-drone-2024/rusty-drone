@@ -6,7 +6,7 @@ impl RustyDrone {
         match command {
             DroneCommand::Crash => return true,
             DroneCommand::SetPacketDropRate(pdr) => self.pdr = *pdr,
-            DroneCommand::RemoveSender(ref node_id) => {
+            DroneCommand::RemoveSender(node_id) => {
                 self.packet_send.remove(node_id);
             }
             DroneCommand::AddSender(node_id, sender) => {

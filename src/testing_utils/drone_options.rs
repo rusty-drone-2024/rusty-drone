@@ -34,7 +34,10 @@ impl DroneOptions {
         }
     }
 
-    pub fn new_with_event(controller_send: Sender<DroneEvent>, event_recv: Receiver<DroneEvent>) -> Self {
+    pub fn new_with_event(
+        controller_send: Sender<DroneEvent>,
+        event_recv: Receiver<DroneEvent>,
+    ) -> Self {
         let (command_send, controller_recv) = unbounded::<DroneCommand>();
         let (packet_drone_in, packet_recv) = unbounded::<Packet>();
         let packet_send = HashMap::<NodeId, Sender<Packet>>::new();

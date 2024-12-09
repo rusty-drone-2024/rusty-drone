@@ -45,12 +45,11 @@ impl RustyDrone {
     }
 
     #[inline(always)]
-    pub(super) fn already_received_flood(
-        &mut self,
-        flood: &FloodRequest
-    ) -> bool {
+    pub(super) fn already_received_flood(&mut self, flood: &FloodRequest) -> bool {
         // TODO talk with WG
-        !self.received_floods.insert((flood.flood_id, flood.initiator_id))
+        !self
+            .received_floods
+            .insert((flood.flood_id, flood.initiator_id))
     }
 }
 

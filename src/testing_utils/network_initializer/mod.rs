@@ -37,7 +37,9 @@ impl Network {
     fn new(amount: usize, connections: &[(NodeId, NodeId)], client: &[NodeId]) -> Self {
         let (event_send, simulation_controller_rcv) = unbounded::<DroneEvent>();
         let mut options = (0..amount)
-            .map(|_| DroneOptions::new_with_event(event_send.clone(), simulation_controller_rcv.clone()))
+            .map(|_| {
+                DroneOptions::new_with_event(event_send.clone(), simulation_controller_rcv.clone())
+            })
             .collect::<Vec<_>>();
 
         for (start, end) in connections {
@@ -69,7 +71,10 @@ impl Network {
             })
             .collect();
 
-        Self { nodes, simulation_controller_rcv }
+        Self {
+            nodes,
+            simulation_controller_rcv,
+        }
     }
 
     pub fn add_connections(&mut self, connections: &[(NodeId, NodeId)]) {

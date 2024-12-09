@@ -38,7 +38,23 @@ fn test_loop_flood() {
 
 #[test]
 fn test_hard_loop_flood() {
-    let net = Network::create_and_run(6, &[(0, 1), (2, 1), (3,1), (3,2), (4,1), (4,2), (4,3), (5, 1), (5, 2), (5, 3), (5, 4)], &[0]);
+    let net = Network::create_and_run(
+        6,
+        &[
+            (0, 1),
+            (2, 1),
+            (3, 1),
+            (3, 2),
+            (4, 1),
+            (4, 2),
+            (4, 3),
+            (5, 1),
+            (5, 2),
+            (5, 3),
+            (5, 4),
+        ],
+        &[0],
+    );
 
     let flood = new_flood_request(5, 7, 0, false);
     net.send_to_dest_as_client(0, 1, flood).unwrap();
@@ -50,7 +66,7 @@ fn test_hard_loop_flood() {
             (2, NodeType::Drone),
             (3, NodeType::Drone),
             (4, NodeType::Drone),
-            (5, NodeType::Drone)
+            (5, NodeType::Drone),
         ],
         TIMEOUT,
     );

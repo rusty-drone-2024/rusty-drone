@@ -48,10 +48,16 @@ impl RustyDrone {
         let mut new_flood = flood.clone();
         new_flood.path_trace.push((self.id, NodeType::Drone));
 
-        self.flood_packet(&Packet::new_flood_request(
-            SourceRoutingHeader { hop_index: 0, hops: vec!() },
-            session_id,
-            new_flood,
-        ), prev_hop);
+        self.flood_packet(
+            &Packet::new_flood_request(
+                SourceRoutingHeader {
+                    hop_index: 0,
+                    hops: vec![],
+                },
+                session_id,
+                new_flood,
+            ),
+            prev_hop,
+        );
     }
 }

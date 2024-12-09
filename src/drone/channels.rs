@@ -5,17 +5,19 @@ use wg_2024::packet::Packet;
 
 impl RustyDrone {
     #[inline(always)]
-    pub fn send_normal_packet(&self, packet: &Packet){
+    pub fn send_normal_packet(&self, packet: &Packet) {
         if let Some(next_hop) = packet.routing_header.current_hop() {
             if let Some(channel) = self.packet_send.get(&next_hop) {
                 let _ = channel.send(packet.clone());
-                let _ = self.controller_send.send(DroneEvent::PacketSent(packet.clone()));
+                let _ = self
+                    .controller_send
+                    .send(DroneEvent::PacketSent(packet.clone()));
             }
         }
     }
 
     #[inline(always)]
-    pub fn send_flood_packet(&self, packet: &Packet){
+    pub fn send_flood_packet(&self, packet: &Packet) {
         if let Some(next_hop) = packet.routing_header.current_hop() {
             if let Some(channel) = self.packet_send.get(&next_hop) {
                 let _ = channel.send(packet.clone());
@@ -29,7 +31,7 @@ impl RustyDrone {
             .controller_send
             .send(DroneEvent::ControllerShortcut(packet.clone()));
     }
-    
+
     #[inline(always)]
     pub(super) fn flood_packet(&self, packet: &Packet, previous_hop: NodeId) {
         for (node_id, channel) in self.packet_send.iter() {
