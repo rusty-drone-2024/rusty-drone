@@ -67,6 +67,7 @@ impl Drone for RustyDrone {
 }
 
 impl RustyDrone {
+    #[inline(always)]
     pub fn handle_packet(&mut self, packet: &Packet, crashing: bool) {
         if let PacketType::FloodRequest(ref flood) = packet.pack_type {
             if !crashing {
