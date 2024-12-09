@@ -1,3 +1,4 @@
+#![cfg(test)]
 use crate::drone::RustyDrone;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use std::collections::HashMap;
@@ -6,7 +7,6 @@ use wg_2024::drone::Drone;
 use wg_2024::network::NodeId;
 use wg_2024::packet::Packet;
 
-#[allow(dead_code)]
 pub struct DroneOptions {
     pub controller_send: Sender<DroneEvent>,
     pub controller_recv: Receiver<DroneCommand>,
@@ -34,7 +34,7 @@ impl DroneOptions {
         }
     }
 
-    pub fn new_with_event(
+    pub(crate) fn new_with_sc(
         controller_send: Sender<DroneEvent>,
         event_recv: Receiver<DroneEvent>,
     ) -> Self {

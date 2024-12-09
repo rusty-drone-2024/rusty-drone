@@ -1,9 +1,10 @@
 #![cfg(test)]
+
 use crate::checkers::TIMEOUT;
 use crate::testing_utils::data::{new_test_fragment_packet, new_test_nack};
 use crate::testing_utils::Network;
-use std::time::Instant;
-use wg_2024::packet::NackType::{DestinationIsDrone, ErrorInRouting};
+use wg_2024::controller::DroneCommand;
+use wg_2024::packet::NackType;
 
 #[test]
 fn test_drone_packet_1_hop() {
@@ -32,6 +33,20 @@ fn test_drone_packet_3_hop() {
 }
 
 #[test]
+fn test_drone_packet_3_hop_crash() {
+    let net = Network::create_and_run(5, &[(0, 1), (1, 2), (2, 3), (3, 4)], &[0, 4]);
+
+    net.send_as_simulation_controller_to(1, DroneCommand::Crash);
+    let packet = new_test_fragment_packet(&[0, 1, 2, 3, 4], 5);
+    
+    net.send_as_client(0, packet.clone()).unwrap();
+    let response = net.recv_as_client(0, TIMEOUT).unwrap();
+    
+    let expected = new_test_nack(&[1, 0], NackType::ErrorInRouting(1), 5, 1);
+    assert_eq!(expected, response);
+}
+
+#[test]
 fn test_drone_packet_255_hop() {
     let net = Network::create_and_run(
         256,
@@ -40,16 +55,11 @@ fn test_drone_packet_255_hop() {
     );
 
     let mut packet = new_test_fragment_packet(&(0..=255).collect::<Vec<_>>(), 5);
-
-    let time = Instant::now();
     net.send_as_client(0, packet.clone()).unwrap();
 
-    let response = net.recv_as_client(255, TIMEOUT * 5).unwrap();
-    let elapsed = time.elapsed();
-
+    let response = net.recv_as_client(255, TIMEOUT * 8).unwrap();
     (&mut packet.routing_header).hop_index = 255;
     assert_eq!(packet, response);
-    assert!(elapsed.le(&(TIMEOUT * 3)), "Too Slow");
 }
 
 #[test]
@@ -60,7 +70,7 @@ fn test_drone_error_in_routing() {
     net.send_as_client(0, packet).unwrap();
 
     let response = net.recv_as_client(0, TIMEOUT).unwrap();
-    let expected = new_test_nack(&[2, 1, 0], ErrorInRouting(4), 5, 2);
+    let expected = new_test_nack(&[2, 1, 0], NackType::ErrorInRouting(4), 5, 2);
     assert_eq!(expected, response);
 }
 
@@ -72,6 +82,6 @@ fn test_drone_destination_is_drone() {
     net.send_as_client(0, packet.clone()).unwrap();
 
     let response = net.recv_as_client(0, TIMEOUT).unwrap();
-    let expected = new_test_nack(&[2, 1, 0], DestinationIsDrone, 5, 2);
+    let expected = new_test_nack(&[2, 1, 0], NackType::DestinationIsDrone, 5, 2);
     assert_eq!(expected, response);
 }

@@ -5,6 +5,7 @@ use wg_2024::packet::{Packet, PacketType};
 
 // Command/packets handling part
 impl RustyDrone {
+    #[inline(always)]
     pub(super) fn respond_normal(&self, packet: &Packet, crashing: bool) {
         let res = self.respond_normal_int(packet, crashing);
         if let Some(ref response_packet) = res {
@@ -13,6 +14,7 @@ impl RustyDrone {
     }
 
     /// Return wheter it should crash or not
+    #[inline(always)]
     fn respond_normal_int(&self, packet: &Packet, crashing: bool) -> Option<Packet> {
         let mut packet = packet.clone();
         let droppable = matches!(packet.pack_type, PacketType::MsgFragment(_));

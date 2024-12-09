@@ -1,3 +1,4 @@
+#![cfg(test)]
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{FloodRequest, Fragment, Nack, NackType, NodeType, Packet};
 
