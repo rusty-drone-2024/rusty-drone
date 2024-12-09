@@ -1,6 +1,4 @@
-mod test_easiest_flood;
-mod test_loop_flood;
-mod test_hard_loop_flood;
+mod normal_flood;
 
 use crate::testing_utils::Network;
 use std::collections::HashMap;
@@ -15,13 +13,13 @@ fn assert_topology_on_client(
 ) {
     let mut hash_map = HashMap::new();
 
-    while let Some(packet) = net.recv_as_client(2, timeout) {
-        if let PacketType::FloodResponse(flood_res) = packet.pack_type {
-            for (node_id, node_type) in flood_res.path_trace {
-                if let Some(old_type) = hash_map.get(&node_id) {
-                    assert_eq!(*old_type, node_type);
+    while let Some(packet) = net.recv_as_client(0, timeout) {
+        if let PacketType::FloodResponse(ref flood_res) = packet.pack_type {
+            for (node_id, node_type) in flood_res.path_trace.iter() {
+                if let Some(old_type) = hash_map.get(node_id) {
+                    assert_eq!(*old_type, *node_type);
                 } else {
-                    hash_map.insert(node_id, node_type);
+                    hash_map.insert(*node_id, *node_type);
                 }
             }
         } else if let PacketType::FloodRequest(_) = packet.pack_type {
@@ -30,7 +28,6 @@ fn assert_topology_on_client(
         }
     }
 
-    //assert_eq!(req_n, 2, "Wrong number of request");
     assert_eq!(hash_map.len(), expected.len(), "Wrong len");
 
     let mut result = hash_map.into_iter().collect::<Vec<_>>();
