@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use crate::checkers::flood::assert_topology_on_client;
+use crate::checkers::flood::assert_topology_of_drones;
 use crate::checkers::TIMEOUT;
 use crate::testing_utils::data::{new_flood_request, new_flood_request_with_path};
 use crate::testing_utils::Network;
@@ -20,25 +20,12 @@ fn test_easiest_flood() {
 
 #[test]
 fn test_loop_flood() {
-    let net = Network::create_and_run(4, &[(0, 1), (1, 2), (1, 3), (2, 3)], &[0]);
-
-    let flood = new_flood_request(5, 7, 0, false);
-    net.send_to_dest_as_client(0, 1, flood).unwrap();
-
-    assert_topology_on_client(
-        net,
-        vec![
-            (1, NodeType::Drone),
-            (2, NodeType::Drone),
-            (3, NodeType::Drone),
-        ],
-        TIMEOUT,
-    );
+    assert_topology_of_drones(4, &[(0, 1), (1, 2), (1, 3), (2, 3)], TIMEOUT);
 }
 
 #[test]
 fn test_hard_loop_flood() {
-    let net = Network::create_and_run(
+    assert_topology_of_drones(
         6,
         &[
             (0, 1),
@@ -52,21 +39,6 @@ fn test_hard_loop_flood() {
             (5, 2),
             (5, 3),
             (5, 4),
-        ],
-        &[0],
-    );
-
-    let flood = new_flood_request(5, 7, 0, false);
-    net.send_to_dest_as_client(0, 1, flood).unwrap();
-
-    assert_topology_on_client(
-        net,
-        vec![
-            (1, NodeType::Drone),
-            (2, NodeType::Drone),
-            (3, NodeType::Drone),
-            (4, NodeType::Drone),
-            (5, NodeType::Drone),
         ],
         TIMEOUT,
     );

@@ -1,5 +1,4 @@
-#![allow(dead_code)]
-
+#![cfg(test)]
 use crate::drone::RustyDrone;
 use crate::testing_utils::DroneOptions;
 use crossbeam_channel::{unbounded, Receiver, Sender};
@@ -11,7 +10,7 @@ use wg_2024::network::NodeId;
 use wg_2024::packet::Packet;
 
 pub struct Network {
-    simulation_controller_rcv: Receiver<DroneEvent>,
+    sc_event_rcv: Receiver<DroneEvent>,
     nodes: Vec<NetworkDrone>,
 }
 
@@ -35,11 +34,9 @@ impl Network {
     /// With the given connections
     /// Duplicated connection are ignored and the graph is not directional
     fn new(amount: usize, connections: &[(NodeId, NodeId)], client: &[NodeId]) -> Self {
-        let (event_send, simulation_controller_rcv) = unbounded::<DroneEvent>();
+        let (sc_event_send, sc_event_rcv) = unbounded::<DroneEvent>();
         let mut options = (0..amount)
-            .map(|_| {
-                DroneOptions::new_with_event(event_send.clone(), simulation_controller_rcv.clone())
-            })
+            .map(|_| DroneOptions::new_with_sc(sc_event_send.clone(), sc_event_rcv.clone()))
             .collect::<Vec<_>>();
 
         for (start, end) in connections {
@@ -73,7 +70,7 @@ impl Network {
 
         Self {
             nodes,
-            simulation_controller_rcv,
+            sc_event_rcv,
         }
     }
 
@@ -103,14 +100,17 @@ impl Network {
         options.packet_recv.clone()
     }
 
-    pub fn try_recv_as_simulation_controller(&self) -> Option<DroneEvent> {
+    pub fn simulation_controller_event_receiver(&self) -> Receiver<DroneEvent> {
         let options = &self.nodes.first().unwrap().options;
-        options.event_recv.try_recv().ok()
+        options.event_recv.clone()
     }
 
-    pub fn recv_as_simulation_controller(&self, timeout: Duration) -> Option<DroneEvent> {
-        let options = &self.nodes.first().unwrap().options;
-        options.event_recv.recv_timeout(timeout).ok()
+    pub fn send_as_simulation_controller_to(&self, node_id: NodeId, command: DroneCommand) {
+        self.nodes[node_id as usize]
+            .options
+            .command_send
+            .send(command)
+            .unwrap()
     }
 
     pub fn send_as_client(&self, node_id: NodeId, packet: Packet) -> Option<()> {

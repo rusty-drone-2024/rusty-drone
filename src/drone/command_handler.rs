@@ -2,6 +2,7 @@ use crate::drone::RustyDrone;
 use wg_2024::controller::DroneCommand;
 
 impl RustyDrone {
+    #[inline(always)]
     pub(super) fn handle_commands(&mut self, command: &DroneCommand) -> bool {
         match command {
             DroneCommand::Crash => return true,
