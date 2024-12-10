@@ -58,7 +58,7 @@ impl Network {
                 } else {
                     Some(options.create_drone(i as NodeId, 0.0))
                 };
-                
+
                 NetworkDrone { options, drone }
             })
             .collect();
@@ -73,15 +73,15 @@ impl Network {
         let options_start = &self.nodes[start as usize].options;
         let options_end = &self.nodes[end as usize].options;
 
-        self.send_as_simulation_controller_to(start, DroneCommand::AddSender(
-            end,
-            options_end.packet_drone_in.clone(),
-        ));
-        
-        self.send_as_simulation_controller_to(end, DroneCommand::AddSender(
+        self.send_as_simulation_controller_to(
             start,
-            options_start.packet_drone_in.clone(),
-        ));
+            DroneCommand::AddSender(end, options_end.packet_drone_in.clone()),
+        );
+
+        self.send_as_simulation_controller_to(
+            end,
+            DroneCommand::AddSender(start, options_start.packet_drone_in.clone()),
+        );
     }
 
     fn get_drone_packet_adder_channel(&self, node_id: NodeId) -> Sender<Packet> {
