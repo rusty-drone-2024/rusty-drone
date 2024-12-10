@@ -3,7 +3,7 @@ mod drone_command;
 mod drone_flood;
 mod drone_packet;
 
-use crate::testing_utils::{test_initialization_with_value, DroneOptions};
+use rusty_tester::utils::{DroneOptions};
 use crate::RustyDrone;
 use crossbeam_channel::{unbounded, Receiver};
 use wg_2024::controller::DroneCommand;
@@ -39,6 +39,21 @@ fn simple_drone_with_two_exit(
 
     (options, drone, new_receiver1, new_receiver2)
 }
+
+pub fn test_initialization() -> (DroneOptions, RustyDrone) {
+    let options = DroneOptions::new();
+    let drone: Box<RustyDrone> = options.create_drone(1, 0.0);
+
+    (options, *drone)
+}
+
+pub fn test_initialization_with_value(id: NodeId, pdr: f32) -> (DroneOptions, RustyDrone) {
+    let options = DroneOptions::new();
+    let drone = options.create_drone(id, pdr);
+
+    (options, *drone)
+}
+
 
 #[test]
 fn test_drone_new() {

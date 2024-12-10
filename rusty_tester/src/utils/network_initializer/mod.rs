@@ -1,6 +1,4 @@
-#![cfg(test)]
-use crate::drone::RustyDrone;
-use crate::testing_utils::DroneOptions;
+use crate::utils::DroneOptions;
 use crossbeam_channel::{unbounded, Receiver};
 use std::thread;
 use std::time::Duration;
@@ -16,24 +14,25 @@ pub struct Network {
 
 pub struct NetworkDrone {
     options: DroneOptions,
-    drone: Option<RustyDrone>,
 }
 
 impl Network {
-    pub fn create_and_run(
+    pub fn create_and_run<T: Drone + Send + 'static>(
         amount: usize,
         connections: &[(NodeId, NodeId)],
         client: &[NodeId],
     ) -> Self {
-        let mut res = Network::new(amount, connections, client);
-        res.start_multi_async();
-        res
+        Network::new::<T>(amount, connections, client)
     }
 
     /// Create vector of drone with ID from 0 to amount
     /// With the given connections
     /// Duplicated connection are ignored and the graph is not directional
-    fn new(amount: usize, connections: &[(NodeId, NodeId)], client: &[NodeId]) -> Self {
+    fn new<T: Drone + Send + 'static>(
+        amount: usize,
+        connections: &[(NodeId, NodeId)],
+        client: &[NodeId],
+    ) -> Self {
         let (sc_event_send, sc_event_rcv) = unbounded::<DroneEvent>();
         let mut options = (0..amount)
             .map(|_| DroneOptions::new_with_sc(sc_event_send.clone(), sc_event_rcv.clone()))
@@ -53,13 +52,15 @@ impl Network {
             .into_iter()
             .enumerate()
             .map(|(i, options)| {
-                let drone = if client.contains(&(i as NodeId)) {
-                    None
-                } else {
-                    Some(options.create_drone(i as NodeId, 0.0))
+                if !client.contains(&(i as NodeId)) {
+                    let mut drone: Box<T> = options.create_drone(i as NodeId, 0.0);
+
+                    thread::spawn(move || {
+                        drone.run();
+                    });
                 };
 
-                NetworkDrone { options, drone }
+                NetworkDrone { options }
             })
             .collect();
 
@@ -112,19 +113,6 @@ impl Network {
         let receiver = &self.nodes[node_id as usize].options.packet_recv;
         receiver.recv_timeout(timeout).ok()
     }
-
-    /// Start some drone
-    /// Not started can be used as client and server by test
-    fn start_multi_async(&mut self) {
-        for node in self.nodes.iter_mut() {
-            if let Some(mut drone) = node.drone.take() {
-                thread::spawn(move || {
-                    drone.run();
-                });
-            }
-        }
-    }
-
     /// Start some drone as fake client
     /// They only respond to FloodRequest
     #[allow(dead_code)]

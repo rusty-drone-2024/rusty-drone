@@ -1,14 +1,12 @@
-#![cfg(test)]
-
-use crate::checkers::flood::assert_topology_of_drones;
-use crate::checkers::TIMEOUT;
-use crate::testing_utils::data::{new_flood_request, new_flood_request_with_path};
-use crate::testing_utils::Network;
+use crate::flood::assert_topology_of_drones;
+use crate::utils::data::{new_flood_request, new_flood_request_with_path};
+use crate::utils::Network;
+use crate::TIMEOUT;
+use wg_2024::drone::Drone;
 use wg_2024::packet::NodeType;
 
-#[test]
-fn test_easiest_flood() {
-    let net = Network::create_and_run(4, &[(0, 1), (1, 2), (1, 3)], &[0, 2, 3]);
+pub fn test_easiest_flood<T: Drone + Send + 'static>() {
+    let net = Network::create_and_run::<T>(4, &[(0, 1), (1, 2), (1, 3)], &[0, 2, 3]);
 
     let flood = new_flood_request(5, 7, 0, false);
     net.send_to_dest_as_client(0, 1, &flood).unwrap();
@@ -18,14 +16,12 @@ fn test_easiest_flood() {
     assert_eq!(expected, net.recv_as_client(3, TIMEOUT).unwrap());
 }
 
-#[test]
-fn test_loop_flood() {
-    assert_topology_of_drones(4, &[(0, 1), (1, 2), (1, 3), (2, 3)], TIMEOUT);
+pub fn test_loop_flood<T: Drone + Send + 'static>() {
+    assert_topology_of_drones::<T>(4, &[(0, 1), (1, 2), (1, 3), (2, 3)], TIMEOUT);
 }
 
-#[test]
-fn test_hard_loop_flood() {
-    assert_topology_of_drones(
+pub fn test_hard_loop_flood<T: Drone + Send + 'static>() {
+    assert_topology_of_drones::<T>(
         6,
         &[
             (0, 1),

@@ -1,7 +1,7 @@
 #![cfg(test)]
-use crate::testing_utils::data::new_test_fragment_packet;
-use crate::testing_utils::data::*;
-use crate::testing_utils::DroneOptions;
+
+use rusty_tester::data::*;
+use rusty_tester::utils::DroneOptions;
 
 use crate::drone::test::{simple_drone_with_exit, simple_drone_with_two_exit};
 use wg_2024::controller::DroneEvent;

@@ -1,6 +1,6 @@
 #![cfg(test)]
 use crate::drone::test::{simple_drone_with_exit, simple_drone_with_two_exit};
-use crate::testing_utils::data::{new_flood_request, new_flood_request_with_path};
+use rusty_tester::utils::data::{new_flood_request, new_flood_request_with_path};
 use wg_2024::controller::DroneEvent;
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{FloodResponse, NodeType, Packet};

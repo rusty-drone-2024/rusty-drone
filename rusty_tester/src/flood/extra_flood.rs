@@ -1,10 +1,9 @@
-#![cfg(test)]
-use crate::checkers::flood::assert_topology_of_drones;
-use crate::checkers::TIMEOUT;
+use crate::flood::assert_topology_of_drones;
+use crate::TIMEOUT;
+use wg_2024::drone::Drone;
 
-#[test]
-fn test_matrix_loop_flood() {
-    assert_topology_of_drones(
+pub fn test_matrix_loop_flood<T: Drone + Send + 'static>() {
+    assert_topology_of_drones::<T>(
         19,
         &[
             (0, 1),
@@ -38,9 +37,8 @@ fn test_matrix_loop_flood() {
     );
 }
 
-#[test]
-fn test_star_loop_flood() {
-    assert_topology_of_drones(
+pub fn test_star_loop_flood<T: Drone + Send + 'static>() {
+    assert_topology_of_drones::<T>(
         11,
         &[
             (0, 1),
@@ -59,9 +57,8 @@ fn test_star_loop_flood() {
     );
 }
 
-#[test]
-fn test_butterfly_loop_flood() {
-    assert_topology_of_drones(
+pub fn test_butterfly_loop_flood<T: Drone + Send + 'static>() {
+    assert_topology_of_drones::<T>(
         11,
         &[
             (0, 1),
@@ -83,9 +80,8 @@ fn test_butterfly_loop_flood() {
     );
 }
 
-#[test]
-fn test_tree_loop_flood() {
-    assert_topology_of_drones(
+pub fn test_tree_loop_flood<T: Drone + Send + 'static>() {
+    assert_topology_of_drones::<T>(
         11,
         &[
             (0, 1),
