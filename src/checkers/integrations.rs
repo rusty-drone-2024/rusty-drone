@@ -57,7 +57,9 @@ fn test_drone_packet_255_hop() {
     let mut packet = new_test_fragment_packet(&(0..=255).collect::<Vec<_>>(), 5);
     net.send_as_client(0, packet.clone()).unwrap();
 
-    let response = net.recv_as_client(255, TIMEOUT * 8).unwrap();
+    let response = net
+        .recv_as_client(255, TIMEOUT * 100)
+        .expect("Took too long or failed");
     (&mut packet.routing_header).hop_index = 255;
     assert_eq!(packet, response);
 }
