@@ -1,5 +1,5 @@
-use rusty_tester::*;
 use crate::RustyDrone;
+use rusty_tester::*;
 
 #[allow(dead_code)]
 type Tested = RustyDrone;
