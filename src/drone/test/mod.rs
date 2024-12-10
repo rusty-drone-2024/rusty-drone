@@ -54,7 +54,6 @@ pub fn test_initialization_with_value(id: NodeId, pdr: f32) -> (DroneOptions, Ru
     (options, *drone)
 }
 
-
 #[test]
 fn test_drone_new() {
     let pdr = 0.3;
