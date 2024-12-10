@@ -16,4 +16,3 @@ jobs:
         with:
           components: rustfmt
       - run: cargo fmt --all --check --quiet
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
