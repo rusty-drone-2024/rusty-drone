@@ -1,5 +1,4 @@
 #![cfg(test)]
-#![allow(dead_code)]
 
 pub mod data;
 mod drone_options;
@@ -23,16 +22,4 @@ pub fn test_initialization_with_value(id: NodeId, pdr: f32) -> (DroneOptions, Ru
     let drone = options.create_drone(id, pdr);
 
     (options, drone)
-}
-
-pub fn test_muliple_initialization(amount: usize) -> Vec<(DroneOptions, RustyDrone)> {
-    (0..)
-        .map(|i| {
-            let drone_options = DroneOptions::new();
-            let drone = drone_options.create_drone(i, 0.0);
-
-            (drone_options, drone)
-        })
-        .take(amount)
-        .collect::<Vec<_>>()
 }

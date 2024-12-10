@@ -1,7 +1,7 @@
 #![cfg(test)]
 use crate::drone::RustyDrone;
 use crate::testing_utils::DroneOptions;
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{unbounded, Receiver};
 use std::thread;
 use std::time::Duration;
 use wg_2024::controller::{DroneCommand, DroneEvent};
@@ -53,18 +53,13 @@ impl Network {
             .into_iter()
             .enumerate()
             .map(|(i, options)| {
-                if client.contains(&(i as NodeId)) {
-                    return NetworkDrone {
-                        options,
-                        drone: None,
-                    };
-                }
+                let drone = if client.contains(&(i as NodeId)) {
+                    None
+                } else {
+                    Some(options.create_drone(i as NodeId, 0.0))
+                };
 
-                let drone = options.create_drone(i as NodeId, 0.0);
-                NetworkDrone {
-                    options,
-                    drone: Some(drone),
-                }
+                NetworkDrone { options, drone }
             })
             .collect();
 
@@ -74,35 +69,25 @@ impl Network {
         }
     }
 
-    pub fn add_connections(&mut self, connections: &[(NodeId, NodeId)]) {
-        for (start, end) in connections {
-            let options_start = &self.nodes[*start as usize].options;
-            let options_end = &self.nodes[*end as usize].options;
+    #[allow(dead_code)]
+    pub fn add_connections(&mut self, start: NodeId, end: NodeId) {
+        let options_start = &self.nodes[start as usize].options;
+        let options_end = &self.nodes[end as usize].options;
 
-            let _ = options_start.command_send.send(DroneCommand::AddSender(
-                *end,
-                options_end.packet_drone_in.clone(),
-            ));
-            let _ = options_end.command_send.send(DroneCommand::AddSender(
-                *start,
-                options_start.packet_drone_in.clone(),
-            ));
-        }
+        self.send_as_simulation_controller_to(
+            start,
+            DroneCommand::AddSender(end, options_end.packet_drone_in.clone()),
+        );
+
+        self.send_as_simulation_controller_to(
+            end,
+            DroneCommand::AddSender(start, options_start.packet_drone_in.clone()),
+        );
     }
 
-    fn get_drone_packet_adder_channel(&self, node_id: NodeId) -> Sender<Packet> {
-        let options = &self.nodes[node_id as usize].options;
-        options.packet_drone_in.clone()
-    }
-
-    fn get_drone_packet_remover_channel(&self, node_id: NodeId) -> Receiver<Packet> {
-        let options = &self.nodes[node_id as usize].options;
-        options.packet_recv.clone()
-    }
-
+    #[allow(dead_code)]
     pub fn simulation_controller_event_receiver(&self) -> Receiver<DroneEvent> {
-        let options = &self.nodes.first().unwrap().options;
-        options.event_recv.clone()
+        self.sc_event_rcv.clone()
     }
 
     pub fn send_as_simulation_controller_to(&self, node_id: NodeId, command: DroneCommand) {
@@ -113,32 +98,19 @@ impl Network {
             .unwrap()
     }
 
-    pub fn send_as_client(&self, node_id: NodeId, packet: Packet) -> Option<()> {
+    pub fn send_as_client(&self, node_id: NodeId, packet: &Packet) -> Option<()> {
         let to = packet.routing_header.current_hop();
-        if let Some(to) = to {
-            return self.send_to_dest_as_client(node_id, to, packet);
-        }
-        None
+        self.send_to_dest_as_client(node_id, to?, packet)
     }
 
-    pub(crate) fn send_to_dest_as_client(
-        &self,
-        node_id: NodeId,
-        to: NodeId,
-        packet: Packet,
-    ) -> Option<()> {
-        let neighbour = self.nodes[node_id as usize].options.packet_send.get(&to);
-        if let Some(neighbour) = neighbour {
-            return neighbour.send(packet).ok();
-        }
-
-        None
+    pub fn send_to_dest_as_client(&self, from: NodeId, to: NodeId, packet: &Packet) -> Option<()> {
+        let neighbour = self.nodes[from as usize].options.packet_send.get(&to);
+        neighbour?.send(packet.clone()).ok()
     }
 
     pub fn recv_as_client(&self, node_id: NodeId, timeout: Duration) -> Option<Packet> {
-        self.get_drone_packet_remover_channel(node_id)
-            .recv_timeout(timeout)
-            .ok()
+        let receiver = &self.nodes[node_id as usize].options.packet_recv;
+        receiver.recv_timeout(timeout).ok()
     }
 
     /// Start some drone
@@ -155,6 +127,7 @@ impl Network {
 
     /// Start some drone as fake client
     /// They only respond to FloodRequest
+    #[allow(dead_code)]
     fn start_fake_clients_async(&mut self, fake_clients: &[NodeId]) {
         todo!("{:?}", fake_clients)
     }

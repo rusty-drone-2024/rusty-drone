@@ -3,7 +3,6 @@ use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{FloodRequest, FloodResponse, NodeType, Packet};
 
 impl RustyDrone {
-    #[inline(always)]
     pub(super) fn respond_flood_request(&mut self, session_id: u64, flood: &FloodRequest) {
         if self.already_received_flood(flood) {
             self.respond_old(session_id, flood);
@@ -12,7 +11,6 @@ impl RustyDrone {
         }
     }
 
-    #[inline(always)]
     fn respond_old(&self, session_id: u64, request: &FloodRequest) {
         let mut new_path = request.path_trace.clone();
         new_path.push((self.id, NodeType::Drone));
@@ -27,7 +25,7 @@ impl RustyDrone {
             hops.push(request.initiator_id);
         }
 
-        self.send_normal_packet(&Packet::new_flood_response(
+        self.send_to_next(Packet::new_flood_response(
             SourceRoutingHeader { hop_index: 1, hops },
             session_id,
             FloodResponse {
@@ -37,7 +35,6 @@ impl RustyDrone {
         ));
     }
 
-    #[inline(always)]
     fn respond_new(&self, session_id: u64, flood: &FloodRequest) {
         let prev_hop = flood
             .path_trace
@@ -48,7 +45,8 @@ impl RustyDrone {
         let mut new_flood = flood.clone();
         new_flood.path_trace.push((self.id, NodeType::Drone));
 
-        self.flood_packet(
+        self.flood_exept(
+            prev_hop,
             &Packet::new_flood_request(
                 SourceRoutingHeader {
                     hop_index: 0,
@@ -57,7 +55,6 @@ impl RustyDrone {
                 session_id,
                 new_flood,
             ),
-            prev_hop,
         );
     }
 }

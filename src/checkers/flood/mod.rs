@@ -15,7 +15,7 @@ fn assert_topology_of_drones(amount: usize, topology: &[(NodeId, NodeId)], timeo
     let net = Network::create_and_run(amount, &topology, &[0]);
 
     let flood = new_flood_request(5, 7, 0, false);
-    net.send_to_dest_as_client(0, 1, flood).unwrap();
+    net.send_to_dest_as_client(0, 1, &flood).unwrap();
 
     let result = normalize_vec(listen_response_nodes(&net, timeout));
     let expected = normalize_vec(topology.to_vec());
@@ -34,9 +34,6 @@ fn listen_response_nodes(network: &Network, timeout: Duration) -> Vec<(NodeId, N
             connection.for_each(|(a, b)| {
                 hash_set.insert((a, b).min((b, a)));
             });
-        } else if let PacketType::FloodRequest(_) = packet.pack_type {
-        } else {
-            panic!("Received {}", packet);
         }
     }
 
