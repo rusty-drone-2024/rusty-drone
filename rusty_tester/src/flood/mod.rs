@@ -1,18 +1,22 @@
-#![cfg(test)]
-mod extra_flood;
-mod normal_flood;
+pub mod extra_flood;
+pub mod normal_flood;
 
-use crate::testing_utils::data::new_flood_request;
-use crate::testing_utils::Network;
+use crate::utils::data::new_flood_request;
+use crate::utils::Network;
 use std::collections::HashSet;
 use std::time::Duration;
+use wg_2024::drone::Drone;
 use wg_2024::network::NodeId;
 use wg_2024::packet::PacketType;
 
 /// assuming the topology as a client at 0
 /// Connected with a drone 1
-fn assert_topology_of_drones(amount: usize, topology: &[(NodeId, NodeId)], timeout: Duration) {
-    let net = Network::create_and_run(amount, &topology, &[0]);
+pub fn assert_topology_of_drones<T: Drone + Send + 'static>(
+    amount: usize,
+    topology: &[(NodeId, NodeId)],
+    timeout: Duration,
+) {
+    let net = Network::create_and_run::<T>(amount, topology, &[0]);
 
     let flood = new_flood_request(5, 7, 0, false);
     net.send_to_dest_as_client(0, 1, &flood).unwrap();
@@ -22,7 +26,7 @@ fn assert_topology_of_drones(amount: usize, topology: &[(NodeId, NodeId)], timeo
     assert_eq!(expected, result);
 }
 
-fn listen_response_nodes(network: &Network, timeout: Duration) -> Vec<(NodeId, NodeId)> {
+pub fn listen_response_nodes(network: &Network, timeout: Duration) -> Vec<(NodeId, NodeId)> {
     let mut hash_set = HashSet::new();
     hash_set.insert((0 as NodeId, 1 as NodeId));
 
@@ -40,7 +44,7 @@ fn listen_response_nodes(network: &Network, timeout: Duration) -> Vec<(NodeId, N
     hash_set.into_iter().collect()
 }
 
-fn normalize_vec(vec: Vec<(NodeId, NodeId)>) -> Vec<(NodeId, NodeId)> {
+pub fn normalize_vec(vec: Vec<(NodeId, NodeId)>) -> Vec<(NodeId, NodeId)> {
     let mut vec = vec
         .into_iter()
         .map(|(a, b)| if a < b { (a, b) } else { (b, a) })

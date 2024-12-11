@@ -6,4 +6,4 @@ edition = "2021"
 crossbeam-channel = "0.5.13"
 rand = "0.8.4"
 wg_2024 = { git = "https://github.com/WGL-2024/WGL_repo_2024.git", features = ["debug"]}
-
+rusty_tester = { path = "rusty_tester" }

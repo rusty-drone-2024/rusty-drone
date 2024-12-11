@@ -1,5 +1,5 @@
 #![cfg(test)]
-use crate::testing_utils::test_initialization;
+use crate::drone::test::test_initialization;
 use crossbeam_channel::unbounded;
 use wg_2024::controller::DroneCommand;
 use wg_2024::packet::Packet;

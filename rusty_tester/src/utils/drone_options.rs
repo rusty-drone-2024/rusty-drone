@@ -1,5 +1,3 @@
-#![cfg(test)]
-use crate::drone::RustyDrone;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use std::collections::HashMap;
 use wg_2024::controller::{DroneCommand, DroneEvent};
@@ -52,15 +50,15 @@ impl DroneOptions {
         }
     }
 
-    pub fn create_drone(&self, id: NodeId, pdr: f32) -> RustyDrone {
-        RustyDrone::new(
+    pub fn create_drone<T: Drone>(&self, id: NodeId, pdr: f32) -> Box<T> {
+        Box::new(T::new(
             id,
             self.controller_send.clone(),
             self.controller_recv.clone(),
             self.packet_recv.clone(),
             self.packet_send.clone(),
             pdr,
-        )
+        ))
     }
 
     pub fn assert_expect_drone_event(&self, expected_event: DroneEvent) {

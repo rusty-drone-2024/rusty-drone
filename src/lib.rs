@@ -1,6 +1,5 @@
-mod checkers;
 mod drone;
-mod testing_utils;
+mod integration_testing;
 
 #[macro_export]
 macro_rules! extract {
