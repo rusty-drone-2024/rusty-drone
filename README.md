@@ -26,7 +26,7 @@ fn main() {
 
 
 ## Extra test usable also for other drones
-Coming soon.
+See the repo [rusty_tester](https://github.com/matteo-dinoia/rusty_tester.git)
 
 ## Support
 You can contact us:
