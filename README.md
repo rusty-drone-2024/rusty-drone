@@ -14,5 +14,5 @@ Coming soon.
 
 ## Support
 You can contact us:
-1. Telegram Bot @RustyDronesBot, we will quickly respond and fix any of your problems
+1. Telegram Bot [@RustyDronesBot](https://t.me/RustyDronesBot), we will quickly respond and fix any of your problems
 2. Create an issue on this GitHub repo
