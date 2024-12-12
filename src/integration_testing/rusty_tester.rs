@@ -1,4 +1,4 @@
-use crate::RustyDrone;
+use crate::drone::RustyDrone;
 use rusty_tester::*;
 
 #[allow(dead_code)]

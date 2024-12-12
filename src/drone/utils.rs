@@ -1,8 +1,16 @@
 use crate::drone::RustyDrone;
-use crate::extract;
 use rand::Rng;
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{FloodRequest, PacketType};
+
+macro_rules! extract {
+    ($e:expr, $p:path) => {
+        match &$e {
+            $p(ref value) => Some(value),
+            _ => None,
+        }
+    };
+}
 
 impl RustyDrone {
     pub(super) fn should_drop(&self) -> bool {

@@ -3,7 +3,7 @@ mod drone_command;
 mod drone_flood;
 mod drone_packet;
 
-use crate::RustyDrone;
+use crate::drone::RustyDrone;
 use crossbeam_channel::{unbounded, Receiver};
 use rusty_tester::utils::DroneOptions;
 use wg_2024::controller::DroneCommand;
