@@ -1,7 +1,7 @@
+#[cfg(test)]
 use crate::drone::RustyDrone;
 use rusty_tester::*;
 
-#[allow(dead_code)]
 type Tested = RustyDrone;
 
 #[test]
