@@ -4,7 +4,7 @@ Drone for the Advanced Programming university's project.
 ## Importing the project
 Add to your `cargo.toml` the line:
 ```toml
-rusty_drones = { git = "https://github.com/matteo-dinoia/rusty-drones.git", branch = "main" }
+rusty_drones = { git = "https://github.com/rusty-drone-2024/rusty-drone.git" }
 ```
 And obviously it is required to import the class repo for example like this:
 ```toml
@@ -26,7 +26,7 @@ fn main() {
 
 
 ## Extra test usable also for other drones
-See the repo [rusty_tester](https://github.com/matteo-dinoia/rusty_tester.git)
+See the repo [rusty_tester](https://github.com/rusty-drone-2024/rusty-tester)
 
 ## Support
 You can contact us:

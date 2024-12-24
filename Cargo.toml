@@ -8,4 +8,4 @@ rand = ">=0.8.4"
 wg_2024 = { git = "https://github.com/WGL-2024/WGL_repo_2024.git", features = ["debug"]}
 
 [dev-dependencies]
-rusty_tester = { git = "https://github.com/matteo-dinoia/rusty_tester.git" }
+rusty_tester = { git = "https://github.com/rusty-drone-2024/rusty-tester" }
