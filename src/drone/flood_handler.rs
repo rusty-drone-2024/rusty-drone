@@ -4,7 +4,9 @@ use wg_2024::packet::{FloodRequest, FloodResponse, NodeType, Packet};
 
 impl RustyDrone {
     pub(super) fn respond_flood_request(&mut self, session_id: u64, flood: &FloodRequest) {
-        if self.already_received_flood(flood) {
+        let no_other_neighbours = self.packet_send.len() == 1;
+
+        if self.already_received_flood(flood) || no_other_neighbours {
             self.respond_old(session_id, flood);
         } else {
             self.respond_new(session_id, flood);
