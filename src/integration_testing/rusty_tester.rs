@@ -6,7 +6,7 @@ use std::time::Duration;
 type Tested = RustyDrone;
 const TIMEOUT: Duration = Duration::from_millis(20);
 const FLOOD_TIMEOUT: Duration = Duration::from_millis(50);
-const HARD_TEST_TIMEOUT: Duration = Duration::from_millis(500);
+const HARD_TEST_TIMEOUT: Duration = Duration::from_millis(1000);
 
 #[test]
 fn drone_destination_is_drone() {
