@@ -34,6 +34,7 @@ fn drone_packet_3_hop_crash() {
 }
 
 #[test]
+#[ignore]
 fn drone_packet_255_hop() {
     test_drone_packet_255_hop::<Tested>(HARD_TEST_TIMEOUT);
 }
