@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use rusty_tester::data::*;
+use rusty_tester::utils::data::*;
 use rusty_tester::utils::DroneOptions;
 
 use crate::drone::test::{simple_drone_with_exit, simple_drone_with_two_exit};
