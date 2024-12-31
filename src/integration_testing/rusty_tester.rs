@@ -1,70 +1,74 @@
-#[cfg(test)]
+#![cfg(test)]
 use crate::drone::RustyDrone;
 use rusty_tester::*;
+use std::time::Duration;
 
 type Tested = RustyDrone;
+const TIMEOUT: Duration = Duration::from_millis(20);
+const FLOOD_TIMEOUT: Duration = Duration::from_millis(50);
+const HARD_TEST_TIMEOUT: Duration = Duration::from_millis(500);
 
 #[test]
-fn test_drone_destination_is_drone() {
-    general::test_drone_destination_is_drone::<Tested>();
+fn drone_destination_is_drone() {
+    test_drone_destination_is_drone::<Tested>(TIMEOUT);
 }
 
 #[test]
-fn test_drone_error_in_routing() {
-    general::test_drone_error_in_routing::<Tested>();
+fn drone_error_in_routing() {
+    test_drone_error_in_routing::<Tested>(TIMEOUT);
 }
 
 #[test]
-fn test_drone_packet_1_hop() {
-    general::test_drone_packet_1_hop::<Tested>();
+fn drone_packet_1_hop() {
+    test_drone_packet_1_hop::<Tested>(TIMEOUT);
 }
 
 #[test]
-fn test_drone_packet_3_hop() {
-    general::test_drone_packet_3_hop::<Tested>();
+fn drone_packet_3_hop() {
+    test_drone_packet_3_hop::<Tested>(TIMEOUT);
 }
 
 #[test]
-fn test_drone_packet_3_hop_crash() {
-    general::test_drone_packet_3_hop_crash::<Tested>();
+fn drone_packet_3_hop_crash() {
+    test_drone_packet_3_hop_crash::<Tested>(TIMEOUT);
 }
 
 #[test]
-fn test_drone_packet_255_hop() {
-    general::test_drone_packet_255_hop::<Tested>();
+fn drone_packet_255_hop() {
+    test_drone_packet_255_hop::<Tested>(HARD_TEST_TIMEOUT);
 }
 
 #[test]
-fn test_easiest_flood() {
-    flood::normal_flood::test_easiest_flood::<Tested>();
+fn easiest_flood() {
+    test_easiest_flood::<Tested>(FLOOD_TIMEOUT);
 }
 
 #[test]
-fn test_loop_flood() {
-    flood::normal_flood::test_loop_flood::<Tested>();
+fn loop_flood() {
+    test_loop_flood::<Tested>(FLOOD_TIMEOUT);
 }
 
 #[test]
-fn test_hard_loop_flood() {
-    flood::normal_flood::test_hard_loop_flood::<Tested>();
+fn hard_loop_flood() {
+    test_hard_loop_flood::<Tested>(FLOOD_TIMEOUT);
 }
 
 #[test]
-fn test_matrix_loop_flood() {
-    flood::extra_flood::test_matrix_loop_flood::<Tested>();
+fn matrix_loop_flood() {
+    test_matrix_loop_flood::<Tested>(FLOOD_TIMEOUT);
 }
 
 #[test]
-fn test_star_loop_flood() {
-    flood::extra_flood::test_star_loop_flood::<Tested>();
+fn star_loop_flood() {
+    test_star_loop_flood::<Tested>(FLOOD_TIMEOUT);
 }
 
 #[test]
-fn test_butterfly_loop_flood() {
-    flood::extra_flood::test_butterfly_loop_flood::<Tested>();
+fn butterfly_loop_flood() {
+    test_butterfly_loop_flood::<Tested>(FLOOD_TIMEOUT);
 }
 
 #[test]
-fn test_tree_loop_flood() {
-    flood::extra_flood::test_tree_loop_flood::<Tested>();
+fn tree_loop_flood() {
+    test_tree_loop_flood::<Tested>(FLOOD_TIMEOUT);
 }
