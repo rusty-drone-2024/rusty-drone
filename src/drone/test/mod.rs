@@ -41,17 +41,14 @@ fn simple_drone_with_two_exit(
 }
 
 pub fn test_initialization() -> (DroneOptions, RustyDrone) {
-    let options = DroneOptions::new();
-    let drone: Box<RustyDrone> = options.create_drone(1, 0.0);
-
-    (options, *drone)
+    test_initialization_with_value(1, 0.0)
 }
 
 pub fn test_initialization_with_value(id: NodeId, pdr: f32) -> (DroneOptions, RustyDrone) {
     let options = DroneOptions::new();
-    let drone = options.create_drone(id, pdr);
+    let drone = options.create_drone::<RustyDrone>(id, pdr);
 
-    (options, *drone)
+    (options, drone)
 }
 
 #[test]
