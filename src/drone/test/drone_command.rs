@@ -12,6 +12,7 @@ fn test_drone_command_crash() {
 }
 
 #[test]
+#[allow(clippy::float_cmp)]
 fn test_drone_command_set_packet_drop_rate() {
     let (_options, mut drone) = test_initialization();
 

@@ -1,4 +1,3 @@
-#![cfg(test)]
 use crate::drone::RustyDrone;
 use wg_2024::tests::{
     generic_chain_fragment_ack, generic_chain_fragment_drop, generic_fragment_drop,

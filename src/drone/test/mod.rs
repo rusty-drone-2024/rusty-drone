@@ -52,6 +52,7 @@ pub fn test_initialization_with_value(id: NodeId, pdr: f32) -> (DroneOptions, Ru
 }
 
 #[test]
+#[allow(clippy::float_cmp)]
 fn test_drone_new() {
     let pdr = 0.3;
     let id = 5;

@@ -29,7 +29,7 @@ impl RustyDrone {
         let mut hops = routing
             .hops
             .iter()
-            .cloned()
+            .copied()
             .take(routing.hop_index + 1)
             .rev()
             .collect::<Vec<_>>();
