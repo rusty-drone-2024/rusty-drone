@@ -38,11 +38,7 @@ impl RustyDrone {
     }
 
     fn respond_new(&self, session_id: u64, flood: &FloodRequest) {
-        let prev_hop = flood
-            .path_trace
-            .last()
-            .map(|x| x.0)
-            .unwrap_or(flood.initiator_id);
+        let prev_hop = flood.path_trace.last().map_or(flood.initiator_id, |x| x.0);
 
         let mut new_flood = flood.clone();
         new_flood.path_trace.push((self.id, NodeType::Drone));

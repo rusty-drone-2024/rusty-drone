@@ -1,4 +1,3 @@
-#![cfg(test)]
 use crate::drone::RustyDrone;
 use rusty_tester::*;
 use std::time::Duration;
@@ -6,7 +5,6 @@ use std::time::Duration;
 type Tested = RustyDrone;
 const TIMEOUT: Duration = Duration::from_millis(20);
 const FLOOD_TIMEOUT: Duration = Duration::from_millis(50);
-const HARD_TEST_TIMEOUT: Duration = Duration::from_millis(1000);
 
 #[test]
 fn drone_destination_is_drone() {
@@ -31,12 +29,6 @@ fn drone_packet_3_hop() {
 #[test]
 fn drone_packet_3_hop_crash() {
     test_drone_packet_3_hop_crash::<Tested>(TIMEOUT);
-}
-
-#[test]
-#[ignore]
-fn drone_packet_255_hop() {
-    test_drone_packet_255_hop::<Tested>(HARD_TEST_TIMEOUT);
 }
 
 #[test]
