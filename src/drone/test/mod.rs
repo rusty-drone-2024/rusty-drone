@@ -5,7 +5,7 @@ mod drone_packet;
 
 use crate::drone::RustyDrone;
 use crossbeam_channel::{unbounded, Receiver};
-use rusty_tester::utils::DroneOptions;
+use rusty_tester::utils::Node;
 use wg_2024::controller::DroneCommand;
 use wg_2024::network::NodeId;
 use wg_2024::packet::Packet;
@@ -14,7 +14,7 @@ fn simple_drone_with_exit(
     id: NodeId,
     pdr: f32,
     exit: NodeId,
-) -> (DroneOptions, RustyDrone, Receiver<Packet>) {
+) -> (Node, RustyDrone, Receiver<Packet>) {
     let (options, mut drone) = test_initialization_with_value(id, pdr);
 
     let (new_sender, new_receiver) = unbounded();
@@ -28,7 +28,7 @@ fn simple_drone_with_two_exit(
     pdr: f32,
     exit1: NodeId,
     exit2: NodeId,
-) -> (DroneOptions, RustyDrone, Receiver<Packet>, Receiver<Packet>) {
+) -> (Node, RustyDrone, Receiver<Packet>, Receiver<Packet>) {
     let (options, mut drone) = test_initialization_with_value(id, pdr);
 
     let (new_sender1, new_receiver1) = unbounded();
@@ -40,15 +40,12 @@ fn simple_drone_with_two_exit(
     (options, drone, new_receiver1, new_receiver2)
 }
 
-pub fn test_initialization() -> (DroneOptions, RustyDrone) {
+pub fn test_initialization() -> (Node, RustyDrone) {
     test_initialization_with_value(1, 0.0)
 }
 
-pub fn test_initialization_with_value(id: NodeId, pdr: f32) -> (DroneOptions, RustyDrone) {
-    let options = DroneOptions::new();
-    let drone = options.create_drone::<RustyDrone>(id, pdr);
-
-    (options, drone)
+pub fn test_initialization_with_value(id: NodeId, pdr: f32) -> (Node, RustyDrone) {
+    Node::create_simple_drone::<RustyDrone>(id, pdr)
 }
 
 #[test]
@@ -56,12 +53,8 @@ pub fn test_initialization_with_value(id: NodeId, pdr: f32) -> (DroneOptions, Ru
 fn test_drone_new() {
     let pdr = 0.3;
     let id = 5;
-    let (options, drone) = test_initialization_with_value(id, pdr);
+    let (_, drone) = test_initialization_with_value(id, pdr);
 
     assert_eq!(drone.id, id);
-    assert!(drone.controller_send.same_channel(&options.controller_send));
-    assert!(drone.controller_recv.same_channel(&options.controller_recv));
-    assert!(drone.packet_recv.same_channel(&options.packet_recv));
-    assert_eq!(drone.packet_send.len(), options.packet_send.len());
     assert_eq!(drone.pdr, pdr);
 }
