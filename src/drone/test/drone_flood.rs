@@ -41,7 +41,7 @@ fn test_drone_flood_res_inclusive() {
 
     assert_eq!(expected.clone(), packet_exit.try_recv().unwrap());
 
-    options.assert_expect_drone_event(DroneEvent::PacketSent(expected));
+    options.assert_expect_drone_event(&DroneEvent::PacketSent(expected));
     options.assert_expect_drone_event_fail();
 }
 
@@ -78,7 +78,7 @@ fn test_drone_flood_res() {
 
     assert_eq!(expected.clone(), packet_exit.try_recv().unwrap());
 
-    options.assert_expect_drone_event(DroneEvent::PacketSent(expected));
+    options.assert_expect_drone_event(&DroneEvent::PacketSent(expected));
     options.assert_expect_drone_event_fail();
 }
 
@@ -99,6 +99,6 @@ fn test_drone_flood_res_leaf() {
 
     assert_eq!(expected.clone(), packet_exit.try_recv().unwrap());
 
-    options.assert_expect_drone_event(DroneEvent::PacketSent(expected));
+    options.assert_expect_drone_event(&DroneEvent::PacketSent(expected));
     options.assert_expect_drone_event_fail();
 }
