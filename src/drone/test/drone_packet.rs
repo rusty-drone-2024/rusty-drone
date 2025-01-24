@@ -1,9 +1,8 @@
 #![cfg(test)]
 
+use crate::drone::test::{simple_drone_with_exit, simple_drone_with_two_exit};
 use rusty_tester::utils::data::*;
 use rusty_tester::utils::Node;
-
-use crate::drone::test::{simple_drone_with_exit, simple_drone_with_two_exit};
 use wg_2024::controller::DroneEvent;
 use wg_2024::network::NodeId;
 use wg_2024::packet::NackType::{Dropped, ErrorInRouting, UnexpectedRecipient};
