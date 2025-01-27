@@ -9,3 +9,7 @@ wg_2024 = { git = "https://github.com/WGL-2024/WGL_repo_2024.git", features = ["
 
 [dev-dependencies]
 rusty_tester = { git = "https://github.com/rusty-drone-2024/rusty-tester" }
+
+[features]
+default = ["packet_sent_for_flood"]
+packet_sent_for_flood = []
