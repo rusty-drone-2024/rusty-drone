@@ -13,6 +13,7 @@ macro_rules! extract {
 }
 
 impl RustyDrone {
+    #[allow(deprecated)]
     pub(super) fn should_drop(&self) -> bool {
         let mut rng = rand::thread_rng();
         rng.gen_range(0.0..1.0) < self.pdr
