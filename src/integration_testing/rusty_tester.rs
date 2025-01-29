@@ -37,6 +37,16 @@ fn easiest_flood() {
 }
 
 #[test]
+fn sequential_flood() {
+    test_sequential_id_flood::<Tested>(FLOOD_TIMEOUT);
+}
+
+#[test]
+fn packet_send_flood() {
+    test_packet_send_flood::<Tested>(FLOOD_TIMEOUT);
+}
+
+#[test]
 fn loop_flood() {
     test_loop_flood::<Tested>(FLOOD_TIMEOUT);
 }
