@@ -21,6 +21,8 @@ impl RustyDrone {
         for (node_id, channel) in &self.packet_send {
             if *node_id != previous_hop {
                 let _ = channel.send(packet.clone());
+                #[cfg(feature = "packet_sent_for_flood")]
+                let _ = self.controller_send.send(PacketSent(packet.clone()));
             }
         }
     }
