@@ -3,24 +3,26 @@ use wg_2024::packet::NackType::{DestinationIsDrone, Dropped, ErrorInRouting, Une
 use wg_2024::packet::{Nack, NackType, Packet, PacketType};
 
 impl RustyDrone {
+    /// Handle the processing of non-flood-request packets.
     pub(super) fn respond_normal(&self, packet: &Packet, crashing: bool) {
         let droppable = matches!(packet.pack_type, PacketType::MsgFragment(_));
         let routing = &packet.routing_header;
 
-        // If unexpected packets
+        // We received this packet, but according to the routing header, we are not the current node on the path
         if routing.current_hop() != Some(self.id) {
             self.nack_packet(packet, UnexpectedRecipient(self.id), droppable, true);
             return;
         }
 
+        // We received a droppable packet as a crashed drone
         if crashing && droppable {
             self.nack_packet(packet, ErrorInRouting(self.id), droppable, false);
             return;
         }
 
-        // In base of next existing or not
         match routing.next_hop() {
             None => {
+                // This packet was send to us, but drones are not valid end destinations
                 if droppable {
                     self.nack_packet(packet, DestinationIsDrone, droppable, false);
                 }
@@ -28,6 +30,7 @@ impl RustyDrone {
             }
             Some(next) => {
                 if !self.packet_send.contains_key(&next) {
+                    // We do not have a connection to the next node that should receive this packet
                     self.nack_packet(packet, ErrorInRouting(next), droppable, true);
                     return;
                 }
@@ -35,16 +38,21 @@ impl RustyDrone {
         }
 
         if droppable && self.should_drop() {
+            // Packet got dropped by packet drop rate
             self.notify_dropped(packet.clone());
             self.nack_packet(packet, Dropped, droppable, false);
             return;
         }
 
+        // Forward packet to the next node in the route (one of our neighbors)
         self.forward_packet(packet);
     }
 
+    /// Send packet to the next node in the packet route.
     fn forward_packet(&self, packet: &Packet) {
         let mut routing_header = packet.routing_header.clone();
+
+        // Set the current hop of the route to the next node
         routing_header.increase_hop_index();
 
         self.send_to_next(Packet {
@@ -54,6 +62,7 @@ impl RustyDrone {
         });
     }
 
+    /// Send nack in response to received packet.
     fn nack_packet(
         &self,
         packet: &Packet,
@@ -63,6 +72,7 @@ impl RustyDrone {
     ) {
         if !droppable {
             if shortcuttable {
+                // Packet cannot be dropped, sending through shortcut is more efficient
                 let mut routing_header = packet.routing_header.clone();
                 routing_header.increase_hop_index();
 
@@ -75,6 +85,7 @@ impl RustyDrone {
             return;
         }
 
+        // Send nack through drone network
         self.send_to_next(Packet::new_nack(
             self.get_routing_back(&packet.routing_header),
             packet.session_id,

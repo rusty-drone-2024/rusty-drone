@@ -14,11 +14,17 @@ use wg_2024::packet::{Packet, PacketType};
 
 pub struct RustyDrone {
     id: NodeId,
+    /// Send information to the Simulation Controller.
     controller_send: Sender<DroneEvent>,
+    /// Receive commands from the Simulation Controller.
     controller_recv: Receiver<DroneCommand>,
+    // Channel to receive packets from our connected neighbors.
     packet_recv: Receiver<Packet>,
+    /// Per (connected neighbor) NodeId, what channel to use to send packets to it.
     packet_send: HashMap<NodeId, Sender<Packet>>,
+    /// Packet Drop Rate.
     pdr: f32,
+    /// Store all flood requests that have been received at least once.
     received_floods: HashSet<(u64, NodeId)>,
 }
 
@@ -38,13 +44,15 @@ impl Drone for RustyDrone {
             packet_recv,
             pdr,
             packet_send,
-            received_floods: HashSet::new(),
+            received_floods: HashSet::new(), // Initially no received flood requests
         }
     }
 
+    /// Continuously process messages (blocking) until we crash.
     fn run(&mut self) {
         let mut crashing = false;
         while !crashing {
+            // Repeatedly try to read a message from either the Simulation Controller (priority) or one of our neighbor nodes
             select_biased! {
                 recv(self.controller_recv) -> res => {
                     if let Ok(ref packet) = res{
@@ -59,7 +67,7 @@ impl Drone for RustyDrone {
             }
         }
 
-        // crashing
+        // Handle remaining queued packets as crashed drone
         while let Ok(ref packet) = self.packet_recv.recv() {
             self.handle_packet(packet, true);
         }
@@ -67,6 +75,7 @@ impl Drone for RustyDrone {
 }
 
 impl RustyDrone {
+    /// Forward the packet to the respective handler function.
     fn handle_packet(&mut self, packet: &Packet, crashing: bool) {
         if let PacketType::FloodRequest(ref flood) = packet.pack_type {
             if !crashing {

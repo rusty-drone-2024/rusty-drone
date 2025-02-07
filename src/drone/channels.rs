@@ -4,6 +4,7 @@ use wg_2024::network::NodeId;
 use wg_2024::packet::Packet;
 
 impl RustyDrone {
+    /// Send packet to the next node in the routing header.
     pub fn send_to_next(&self, packet: Packet) {
         let Some(next_hop) = packet.routing_header.current_hop() else {
             return;
@@ -17,7 +18,8 @@ impl RustyDrone {
         let _ = self.controller_send.send(PacketSent(packet));
     }
 
-    pub(super) fn flood_exept(&self, previous_hop: NodeId, packet: &Packet) {
+    /// Forward packet to all neighbors except previous hop.
+    pub(super) fn flood_except(&self, previous_hop: NodeId, packet: &Packet) {
         for (node_id, channel) in &self.packet_send {
             if *node_id != previous_hop {
                 let _ = channel.send(packet.clone());
@@ -27,10 +29,12 @@ impl RustyDrone {
         }
     }
 
+    /// Send packet over shortcut chanel.
     pub(super) fn use_shortcut(&self, packet: Packet) {
         let _ = self.controller_send.send(ControllerShortcut(packet));
     }
 
+    /// Inform Simulation Controller that a packet was dropped.
     pub(super) fn notify_dropped(&self, packet: Packet) {
         let _ = self.controller_send.send(PacketDropped(packet));
     }
