@@ -12,7 +12,6 @@ use wg_2024::drone::Drone;
 use wg_2024::network::NodeId;
 use wg_2024::packet::{Packet, PacketType};
 
-#[allow(clippy::module_name_repetitions)]
 pub struct RustyDrone {
     id: NodeId,
     /// Send information to the Simulation Controller.
