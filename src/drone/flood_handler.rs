@@ -29,7 +29,8 @@ impl RustyDrone {
             .rev()
             .collect::<Vec<_>>();
 
-        // Add the request initiator to the routing path (in case they did not add themselves when starting the request)
+        // Add the request initiator to the routing path
+        // (in case they did not add themselves when starting the request)
         if hops.last() != Some(&request.initiator_id) {
             hops.push(request.initiator_id);
         }
@@ -45,9 +46,11 @@ impl RustyDrone {
         ));
     }
 
-    /// Flood request has not finished yet, forward it to all our neighbors (excluding the one that send it to us).
+    /// Flood request has not finished yet, forward it to all our neighbors
+    /// (excluding the one that send it to us).
     fn respond_new(&self, session_id: u64, flood: &FloodRequest) {
         // Exclude the neighbor we received the packet from in the forward
+        // Fall back on initiator id in case path_trace is empty
         let prev_hop = flood.path_trace.last().map_or(flood.initiator_id, |x| x.0);
 
         let mut new_flood = flood.clone();

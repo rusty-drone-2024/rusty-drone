@@ -12,6 +12,7 @@ use wg_2024::drone::Drone;
 use wg_2024::network::NodeId;
 use wg_2024::packet::{Packet, PacketType};
 
+#[allow(clippy::module_name_repetitions)]
 pub struct RustyDrone {
     id: NodeId,
     /// Send information to the Simulation Controller.
@@ -20,7 +21,7 @@ pub struct RustyDrone {
     controller_recv: Receiver<DroneCommand>,
     // Channel to receive packets from our connected neighbors.
     packet_recv: Receiver<Packet>,
-    /// Per (connected neighbor) NodeId, what channel to use to send packets to it.
+    /// Per (connected neighbor) `NodeId`, what channel to use to send packets to it.
     packet_send: HashMap<NodeId, Sender<Packet>>,
     /// Packet Drop Rate.
     pdr: f32,
@@ -44,7 +45,7 @@ impl Drone for RustyDrone {
             packet_recv,
             pdr,
             packet_send,
-            received_floods: HashSet::new(), // Initially no received flood requests
+            received_floods: HashSet::new(),
         }
     }
 
@@ -52,7 +53,8 @@ impl Drone for RustyDrone {
     fn run(&mut self) {
         let mut crashing = false;
         while !crashing {
-            // Repeatedly try to read a message from either the Simulation Controller (priority) or one of our neighbor nodes
+            // Repeatedly try to read a message from either
+            // the Simulation Controller (priority) or one of our neighbor nodes
             select_biased! {
                 recv(self.controller_recv) -> res => {
                     if let Ok(ref packet) = res{

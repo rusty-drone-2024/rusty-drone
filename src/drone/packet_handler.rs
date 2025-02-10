@@ -72,7 +72,7 @@ impl RustyDrone {
     ) {
         if !droppable {
             if shortcuttable {
-                // Packet cannot be dropped, sending through shortcut is more efficient
+                // Packet cannot be dropped, sending through shortcut
                 let mut routing_header = packet.routing_header.clone();
                 routing_header.increase_hop_index();
 
@@ -85,7 +85,7 @@ impl RustyDrone {
             return;
         }
 
-        // Send nack through drone network
+        // Send nack to the first hop
         self.send_to_next(Packet::new_nack(
             self.get_routing_back(&packet.routing_header),
             packet.session_id,

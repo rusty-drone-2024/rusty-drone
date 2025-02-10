@@ -44,7 +44,7 @@ impl RustyDrone {
     }
 }
 
-/// Get fragment index of MsgFragment or use default fragment index 1 for other packet types.
+/// Get fragment index of `MsgFragment` or use default fragment index 0 for other packet types.
 pub(super) fn get_fragment_index(packet_type: &PacketType) -> u64 {
-    extract!(packet_type, PacketType::MsgFragment).map_or(1, |x| x.fragment_index)
+    extract!(packet_type, PacketType::MsgFragment).map_or(0, |x| x.fragment_index)
 }

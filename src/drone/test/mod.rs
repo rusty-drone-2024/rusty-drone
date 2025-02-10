@@ -40,10 +40,12 @@ fn simple_drone_with_two_exit(
     (options, drone, new_receiver1, new_receiver2)
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub fn test_initialization() -> (Node, RustyDrone) {
     test_initialization_with_value(1, 0.0)
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub fn test_initialization_with_value(id: NodeId, pdr: f32) -> (Node, RustyDrone) {
     Node::create_simple_drone::<RustyDrone>(id, pdr)
 }
